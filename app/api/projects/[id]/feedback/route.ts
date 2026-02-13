@@ -5,10 +5,12 @@ import { prisma } from '@/lib/db';
 
 export async function GET(
       req: NextRequest,
-      { params }: { params: { id: string } }
+      { params }: { params: Promise<{ id: string }> }
 ) {
+      const { id: projectId } = await params;
+
       const feedbacks = await prisma.feedback.findMany({
-            where: { projectId: params.id },
+            where: { projectId: projectId },
             include: {
                   user: {
                         select: { username: true }
@@ -22,9 +24,11 @@ export async function GET(
 
 export async function POST(
       req: NextRequest,
-      { params }: { params: { id: string } }
+      { params }: { params: Promise<{ id: string }> }
 ) {
+      const { id: projectId } = await params;
       const session = await getServerSession(authOptions);
+
       if (!session?.user?.email) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
@@ -43,7 +47,7 @@ export async function POST(
             data: {
                   content,
                   userId: user.id,
-                  projectId: params.id
+                  projectId: projectId
             }
       });
 

@@ -5,9 +5,11 @@ import { prisma } from '@/lib/db';
 
 export async function POST(
       req: NextRequest,
-      { params }: { params: { id: string } }
+      { params }: { params: Promise<{ id: string }> }
 ) {
+      const { id: projectId } = await params;
       const session = await getServerSession(authOptions);
+
       if (!session?.user?.email) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
@@ -17,8 +19,6 @@ export async function POST(
       });
 
       if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-
-      const projectId = params.id;
 
       // Check if already voted
       const existingVote = await prisma.vote.findUnique({
