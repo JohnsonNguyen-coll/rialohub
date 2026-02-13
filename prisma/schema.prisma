@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,8 +20,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -38,19 +34,19 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?    @unique
   emailVerified DateTime?
   image         String?
-  username      String?   @unique
+  username      String?    @unique
   twitterHandle String?
   discordHandle String?
   accounts      Account[]
-  sessions      Session[]
-  projects      Project[]
-  votes         Vote[]
   feedback      Feedback[]
+  projects      Project[]
+  sessions      Session[]
+  votes         Vote[]
 }
 
 model VerificationToken {
@@ -62,16 +58,16 @@ model VerificationToken {
 }
 
 model Project {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   userId      String
   name        String
   description String
   link        String
-  category    String   // "builder" or "sharktank"
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  votes       Vote[]
+  category    String
+  createdAt   DateTime   @default(now())
   feedback    Feedback[]
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes       Vote[]
 }
 
 model Vote {
@@ -79,8 +75,8 @@ model Vote {
   userId    String
   projectId String
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
 }
@@ -91,6 +87,6 @@ model Feedback {
   projectId String
   content   String
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
