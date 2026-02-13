@@ -22,8 +22,11 @@ export const authOptions: NextAuthOptions = {
                   if (account) {
                         token.accessToken = account.access_token
                         token.provider = account.provider
+                        token.providerAccountId = account.providerAccountId
                         if (profile) {
-                              token.username = profile.data?.username || profile.username
+                              // For Twitter v2, username is in profile.data.username
+                              // For Discord, it's profile.username or profile.tag
+                              token.username = profile.data?.username || profile.username || profile.name
                         }
                   }
                   return token
@@ -31,8 +34,9 @@ export const authOptions: NextAuthOptions = {
             async session({ session, token }: any) {
                   if (session.user) {
                         (session as any).accessToken = token.accessToken
-                        session.user.provider = token.provider
-                        session.user.username = token.username
+                              (session.user as any).provider = token.provider
+                                    (session.user as any).providerAccountId = token.providerAccountId
+                                          (session.user as any).username = token.username
                   }
                   return session
             },

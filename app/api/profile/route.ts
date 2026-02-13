@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      const { username, twitterHandle, discordHandle } = await req.json();
+      const { username, twitterHandle, twitterId, discordHandle, discordId } = await req.json();
 
       // Validate username format
       const usernameRegex = /^[a-zA-Z0-9_]+$/;
@@ -32,12 +32,44 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Username already taken' }, { status: 400 });
       }
 
+      // Check if Twitter account already linked to another user
+      if (twitterId) {
+            const existingTwitterUser = await prisma.user.findFirst({
+                  where: {
+                        twitterId: twitterId,
+                        NOT: {
+                              email: session.user.email
+                        }
+                  }
+            });
+            if (existingTwitterUser) {
+                  return NextResponse.json({ error: 'This Twitter account is already linked to another profile' }, { status: 400 });
+            }
+      }
+
+      // Check if Discord account already linked to another user
+      if (discordId) {
+            const existingDiscordUser = await prisma.user.findFirst({
+                  where: {
+                        discordId: discordId,
+                        NOT: {
+                              email: session.user.email
+                        }
+                  }
+            });
+            if (existingDiscordUser) {
+                  return NextResponse.json({ error: 'This Discord account is already linked to another profile' }, { status: 400 });
+            }
+      }
+
       const updatedUser = await prisma.user.update({
             where: { email: session.user.email },
             data: {
                   username,
                   twitterHandle,
+                  twitterId,
                   discordHandle,
+                  discordId,
             }
       });
 

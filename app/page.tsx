@@ -221,7 +221,7 @@ export default function Home() {
       </div>
 
       {showSubmitModal && (
-        userProfile ? (
+        (userProfile && userProfile.username) ? (
           <SubmitProjectForm 
             user={userProfile}
             onCancel={() => setShowSubmitModal(false)}
@@ -229,6 +229,7 @@ export default function Home() {
           />
         ) : (
           <ProfileSetup 
+            currentProfile={userProfile}
             onComplete={handleProfileComplete} 
             onCancel={() => setShowSubmitModal(false)}
           />
