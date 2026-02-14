@@ -43,9 +43,9 @@ model User {
   password      String?
   role          String     @default("user") // Added role
   twitterHandle String?
-  twitterId     String?
+  twitterId     String?    @unique
   discordHandle String?
-  discordId     String?
+  discordId     String?    @unique
   accounts      Account[]
   feedback      Feedback[]
   projects      Project[]

@@ -13,10 +13,14 @@ export const authOptions: NextAuthOptions = {
                   clientId: process.env.TWITTER_CLIENT_ID || "",
                   clientSecret: process.env.TWITTER_CLIENT_SECRET || "",
                   version: "2.0",
+                  authorization: {
+                        params: { scope: "users.read tweet.read offline.access" },
+                  },
             }),
             DiscordProvider({
                   clientId: process.env.DISCORD_CLIENT_ID || "",
                   clientSecret: process.env.DISCORD_CLIENT_SECRET || "",
+                  authorization: { params: { scope: "identify" } },
             }),
             CredentialsProvider({
                   name: "Credentials",
@@ -55,22 +59,57 @@ export const authOptions: NextAuthOptions = {
             strategy: "jwt",
       },
       callbacks: {
-            async jwt({ token, user }: any) {
+            async signIn({ user, account, profile }: any) {
+                  // Always allow credentials login
+                  if (account.provider === "credentials") return true;
+
+                  // For social providers, we block direct LOGIN/REGISTRATION
+                  // We ONLY allow it if the user already has a 'username' (meaning they registered via credentials first)
+                  const existingUser = await prisma.user.findUnique({
+                        where: { id: user.id }
+                  });
+
+                  if (!existingUser || !existingUser.username) {
+                        // User is trying to register/login directly via X/Discord without a RialoHub account
+                        throw new Error("Direct social login is disabled. Please sign in with your username/password first, then connect socials in your profile.");
+                  }
+
+                  // Check for uniqueness: Ensure this social ID isn't already used by ANOTHER user
+                  const socialId = account.providerAccountId;
+                  const otherUser = await prisma.user.findFirst({
+                        where: {
+                              OR: [
+                                    account.provider === 'twitter' ? { twitterId: socialId } : { discordId: socialId }
+                              ].filter(obj => Object.keys(obj).length > 0) as any
+                        }
+                  });
+
+                  if (otherUser && otherUser.id !== existingUser.id) {
+                        throw new Error(`This ${account.provider} account is already linked to another RialoHub user.`);
+                  }
+
+                  return true;
+            },
+            async jwt({ token, user, trigger, session }: any) {
                   if (user) {
                         token.id = user.id;
                         token.username = user.username;
                         token.role = user.role;
-                  } else if (token.sub && !token.role) {
-                        // On subsequent calls, if role is missing, fetch it
+                  }
+
+                  // Always fetch latest data from DB to ensure session stays in sync with connections
+                  if (token.sub) {
                         const dbUser: any = await prisma.user.findUnique({
                               where: { id: token.sub },
-                              select: { role: true, username: true, twitterId: true, discordId: true } as any
+                              select: { role: true, username: true, twitterId: true, discordId: true, twitterHandle: true, discordHandle: true } as any
                         });
                         if (dbUser) {
                               token.role = dbUser.role;
                               token.username = dbUser.username;
                               token.twitterId = dbUser.twitterId;
                               token.discordId = dbUser.discordId;
+                              token.twitterHandle = dbUser.twitterHandle;
+                              token.discordHandle = dbUser.discordHandle;
                         }
                   }
                   return token
@@ -82,15 +121,19 @@ export const authOptions: NextAuthOptions = {
                         session.user.role = token.role;
                         session.user.twitterId = token.twitterId;
                         session.user.discordId = token.discordId;
+                        session.user.twitterHandle = token.twitterHandle;
+                        session.user.discordHandle = token.discordHandle;
                   }
                   return session
             },
       },
       events: {
             async signIn({ user, account, profile }: any) {
-                  if (account && user.id) {
+                  // This event is where we handle the actual "Linking" update
+                  if (account && user.id && account.provider !== 'credentials') {
                         const data: any = {};
                         if (account.provider === 'twitter') {
+                              // For Twitter v2, handle is in data.username
                               data.twitterHandle = profile.data?.username || profile.username || profile.name;
                               data.twitterId = account.providerAccountId;
                         } else if (account.provider === 'discord') {
