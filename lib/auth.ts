@@ -63,41 +63,40 @@ export const authOptions: NextAuthOptions = {
                   // Always allow credentials login
                   if (account.provider === "credentials") return true;
 
-                  // For social providers, we block direct LOGIN/REGISTRATION
-                  // We ONLY allow it if the user already has a 'username' (meaning they registered via credentials first)
-                  const existingUser = await prisma.user.findUnique({
-                        where: { id: user.id }
-                  });
-
-                  if (!existingUser || !existingUser.username) {
-                        // User is trying to register/login directly via X/Discord without a RialoHub account
-                        throw new Error("Direct social login is disabled. Please sign in with your username/password first, then connect socials in your profile.");
-                  }
-
-                  // Check for uniqueness: Ensure this social ID isn't already used by ANOTHER user
-                  const socialId = account.providerAccountId;
-                  const otherUser = await prisma.user.findFirst({
+                  // Find if this social account is already linked
+                  const existingAccount = await prisma.account.findUnique({
                         where: {
-                              OR: [
-                                    account.provider === 'twitter' ? { twitterId: socialId } : { discordId: socialId }
-                              ].filter(obj => Object.keys(obj).length > 0) as any
+                              provider_providerAccountId: {
+                                    provider: account.provider,
+                                    providerAccountId: account.providerAccountId
+                              }
                         }
                   });
 
-                  if (otherUser && otherUser.id !== existingUser.id) {
-                        throw new Error(`This ${account.provider} account is already linked to another RialoHub user.`);
+                  // If it's already linked, allow the sign-in ONLY IF the user has a username
+                  if (existingAccount) {
+                        const linkedUser = await prisma.user.findUnique({ where: { id: existingAccount.userId } });
+                        if (!linkedUser || !linkedUser.username) {
+                              throw new Error("Direct social login is disabled. Please sign in with your username/password first.");
+                        }
+                        return true;
+                  }
+
+                  // IMPORTANT: To prevent "Direct Social Signup", we blow up if no username exists
+                  // This forces the user to go through the Credentials flow first.
+                  if (!user.username) {
+                        throw new Error("Direct social login is disabled. Please sign in with your username/password first, then connect socials in your profile.");
                   }
 
                   return true;
             },
-            async jwt({ token, user, trigger, session }: any) {
+            async jwt({ token, user, account }: any) {
                   if (user) {
                         token.id = user.id;
                         token.username = user.username;
                         token.role = user.role;
                   }
 
-                  // Always fetch latest data from DB to ensure session stays in sync with connections
                   if (token.sub) {
                         const dbUser: any = await prisma.user.findUnique({
                               where: { id: token.sub },
@@ -129,7 +128,7 @@ export const authOptions: NextAuthOptions = {
       },
       events: {
             async signIn({ user, account, profile }: any) {
-                  // This event is where we handle the actual "Linking" update
+                  // This is the "Linking" logic
                   if (account && user.id && account.provider !== 'credentials') {
                         const data: any = {};
                         if (account.provider === 'twitter') {
