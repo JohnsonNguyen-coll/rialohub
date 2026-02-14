@@ -45,9 +45,8 @@ export const authOptions: NextAuthOptions = {
 
                         return {
                               id: user.id,
-                              email: user.email,
-                              name: user.name,
                               username: user.username,
+                              role: user.role,
                         }
                   }
             }),
@@ -56,33 +55,36 @@ export const authOptions: NextAuthOptions = {
             strategy: "jwt",
       },
       callbacks: {
-            async jwt({ token, account, profile }: any) {
-                  if (account) {
-                        token.accessToken = account.access_token
-                        token.provider = account.provider
-                        token.providerAccountId = account.providerAccountId
-                        if (profile) {
-                              // For Twitter v2, username is in profile.data.username
-                              // For Discord, it's profile.username or profile.tag
-                              token.username = profile.data?.username || profile.username || profile.name
+            async jwt({ token, user }: any) {
+                  if (user) {
+                        token.id = user.id;
+                        token.username = user.username;
+                        token.role = user.role;
+                  } else if (token.sub && !token.role) {
+                        // On subsequent calls, if role is missing, fetch it
+                        const dbUser: any = await prisma.user.findUnique({
+                              where: { id: token.sub },
+                              select: { role: true, username: true } as any
+                        });
+                        if (dbUser) {
+                              token.role = dbUser.role;
+                              token.username = dbUser.username;
                         }
                   }
                   return token
             },
             async session({ session, token }: any) {
                   if (session.user) {
-                        (session as any).accessToken = token.accessToken
-                              ; (session.user as any).provider = token.provider
-                              ; (session.user as any).providerAccountId = token.providerAccountId
-                              ; (session.user as any).username = token.username
-                              ; (session.user as any).id = token.sub
+                        session.user.id = token.sub;
+                        session.user.username = token.username;
+                        session.user.role = token.role;
                   }
                   return session
             },
       },
       events: {
             async signIn({ user, account, profile }: any) {
-                  if (account && user.email) {
+                  if (account && user.id) {
                         const data: any = {};
                         if (account.provider === 'twitter') {
                               data.twitterHandle = profile.data?.username || profile.username || profile.name;
@@ -94,7 +96,7 @@ export const authOptions: NextAuthOptions = {
 
                         if (Object.keys(data).length > 0) {
                               await prisma.user.update({
-                                    where: { email: user.email },
+                                    where: { id: user.id },
                                     data
                               });
                         }

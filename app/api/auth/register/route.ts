@@ -10,6 +10,16 @@ export async function POST(req: Request) {
                   return NextResponse.json({ error: "Missing username or password" }, { status: 400 });
             }
 
+            // Validate username format: no spaces, no special chars except underscore
+            const usernameRegex = /^[a-zA-Z0-9_]+$/;
+            if (!usernameRegex.test(username)) {
+                  return NextResponse.json({ error: "Username can only contain letters, numbers, and underscores" }, { status: 400 });
+            }
+
+            if (username.length < 3) {
+                  return NextResponse.json({ error: "Username must be at least 3 characters" }, { status: 400 });
+            }
+
             // Check if user already exists
             const existingUser = await prisma.user.findUnique({
                   where: { username }
@@ -24,7 +34,9 @@ export async function POST(req: Request) {
             const user = await (prisma.user as any).create({
                   data: {
                         username,
+                        name: username, // Set display name equal to username
                         password: hashedPassword,
+                        role: 'user'
                   }
             });
 

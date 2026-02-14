@@ -1,180 +1,113 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
-import { Layout, Users, Trophy, PlusCircle, Twitter, MessageSquare, LogIn, LogOut } from 'lucide-react';
+import { signOut } from 'next-auth/react';
+import { LogOut, User as UserIcon, Bell, Menu } from 'lucide-react';
 
-export default function Navbar({ 
-  activeTab, 
-  setActiveTab, 
-  user: initialUser, 
-  onConnect 
-}: { 
+export default function Navbar({ activeTab, setActiveTab, user, onConnect }: { 
   activeTab?: string, 
   setActiveTab?: (tab: string) => void,
-  user: any | null,
-  onConnect: () => void
+  user?: any,
+  onConnect: () => void 
 }) {
-  const { data: session } = useSession();
-  const [user, setUser] = useState<any>(initialUser);
+  const displayUser = user || null;
 
-  useEffect(() => {
-    if (session && !user) {
-      fetch('/api/profile').then(res => res.json()).then(data => setUser(data));
-    }
-  }, [session, user]);
-
-  const displayUser = user || initialUser;
   return (
-    <nav style={{ 
-      padding: '1rem 0', 
+    <nav className="glass" style={{ 
+      height: '72px',
       borderBottom: '1px solid var(--border)',
       position: 'sticky',
       top: 0,
-      backgroundColor: 'rgba(247, 243, 233, 0.95)',
-      backdropFilter: 'blur(10px)',
       zIndex: 100,
-      marginBottom: '2rem'
+      display: 'flex',
+      alignItems: 'center'
     }}>
-      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link href="/" style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.5px', textDecoration: 'none' }}>
-          RIALO<span style={{ color: 'var(--accent)' }}>HUB</span>
-        </Link>
+      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        {/* Branding Area */}
+        <div style={{ width: 'var(--sidebar-width)', display: 'flex', alignItems: 'center' }}>
+           <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+             <div style={{ 
+               width: '32px', height: '32px', borderRadius: '8px', 
+               background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)',
+               display: 'flex', alignItems: 'center', justifyContent: 'center',
+               color: 'white', fontWeight: 900, fontSize: '1rem'
+             }}>R</div>
+             <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-1.5px' }}>
+                RIALO<span style={{ fontWeight: 400, color: 'var(--secondary)' }}>HUB</span>
+             </span>
+           </Link>
+        </div>
         
+        {/* Centered Navigation */}
         {setActiveTab && (
-          <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-            <button 
-              onClick={() => setActiveTab('builder')}
-              style={{ 
-                background: 'none', border: 'none', cursor: 'pointer',
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                fontWeight: 600,
-                color: activeTab === 'builder' ? 'var(--accent)' : 'var(--foreground)',
-                borderBottom: activeTab === 'builder' ? '2px solid var(--accent)' : 'none',
-                padding: '0.4rem 0'
-              }}
-            >
-              <Users size={18} />
-              Builder Hub
-            </button>
-            <button 
-              onClick={() => setActiveTab('sharktank')}
-              style={{ 
-                background: 'none', border: 'none', cursor: 'pointer',
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                fontWeight: 600,
-                color: activeTab === 'sharktank' ? 'var(--accent)' : 'var(--foreground)',
-                borderBottom: activeTab === 'sharktank' ? '2px solid var(--accent)' : 'none',
-                padding: '0.4rem 0'
-              }}
-            >
-              <Trophy size={18} />
-              Shark Tank
-            </button>
+          <div style={{ flex: 1, display: 'flex', gap: '2rem', justifyContent: 'center', alignItems: 'center' }}>
+            {['builder', 'sharktank'].map((tab) => (
+              <button 
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{ 
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: activeTab === tab ? 800 : 600,
+                  color: activeTab === tab ? 'var(--primary)' : 'var(--secondary)',
+                  padding: '0.5rem 0',
+                  position: 'relative',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'capitalize'
+                }}
+              >
+                {tab === 'builder' ? 'The Hub' : 'Shark Tank'}
+                {activeTab === tab && (
+                  <div style={{ 
+                    position: 'absolute', bottom: '-24px', left: '0', right: '0', 
+                    height: '3px', backgroundColor: 'var(--primary)',
+                    borderRadius: '3px 3px 0 0'
+                  }} />
+                )}
+              </button>
+            ))}
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        {/* User Actions Area */}
+        <div style={{ width: 'var(--right-sidebar-width)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1.25rem' }}>
           {displayUser ? (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '1.2rem'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '1.2rem', 
-                backgroundColor: 'white', 
-                padding: '0.5rem 1.2rem', 
-                borderRadius: '16px',
-                border: '1px solid var(--border)',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
-              }}>
-                <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>
-                  {displayUser.username}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+               <button style={{ background: 'none', border: 'none', color: 'var(--secondary)', cursor: 'pointer' }}>
+                  <Bell size={20} />
+               </button>
+               <div style={{ height: '24px', width: '1px', backgroundColor: 'var(--border)' }} />
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ 
+                  width: '36px', height: '36px', borderRadius: '10px', 
+                  backgroundColor: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 800, fontSize: '0.85rem'
+                }}>
+                  {displayUser.username.substring(0, 1).toUpperCase()}
                 </div>
-                <div style={{ width: '1px', height: '15px', backgroundColor: '#eee' }} />
-                <div style={{ display: 'flex', gap: '0.6rem' }}>
-                  <Twitter size={14} color="#1DA1F2" style={{ opacity: displayUser.twitterHandle ? 1 : 0.3 }} />
-                  <MessageSquare size={14} color="#5865F2" style={{ opacity: displayUser.discordHandle ? 1 : 0.3 }} />
-                </div>
+                <button 
+                  onClick={() => signOut()}
+                  style={{
+                    padding: '0.4rem', border: 'none', background: 'none', color: 'var(--muted)', cursor: 'pointer'
+                  }}
+                  title="Logout"
+                >
+                  <LogOut size={18} />
+                </button>
               </div>
-
-              <button 
-                onClick={() => signOut()}
-                title="Log out"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '0.6rem',
-                  borderRadius: '12px',
-                  border: '1px solid #fee2e2',
-                  backgroundColor: '#fff1f1',
-                  color: '#ef4444',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#fecaca';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = '#fff1f1';
-                }}
-              >
-                <LogOut size={18} />
-              </button>
             </div>
           ) : (
             <button 
               onClick={onConnect}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                fontWeight: 600,
-                color: 'var(--primary)',
-                padding: '0.5rem 1rem',
-                borderRadius: '10px',
-                border: '1.5px solid var(--primary)',
-                background: 'none',
-                cursor: 'pointer'
-              }}
+              className="btn-black"
+              style={{ padding: '0.6rem 1.5rem', fontSize: '0.85rem' }}
             >
-              <LogIn size={18} />
-              Connect Profiles
+              Sign In
             </button>
           )}
-
-          <button 
-            onClick={onConnect}
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '12px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s ease'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <PlusCircle size={18} />
-            Submit
-          </button>
         </div>
       </div>
     </nav>
   );
 }
-

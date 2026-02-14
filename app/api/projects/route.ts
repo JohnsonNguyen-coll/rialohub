@@ -8,11 +8,15 @@ export async function GET(req: NextRequest) {
       const { searchParams } = new URL(req.url);
       const category = searchParams.get('category');
       const userId = searchParams.get('userId');
+      const eventId = searchParams.get('eventId');
+      const isTop = searchParams.get('isTop');
 
-      const projects = await prisma.project.findMany({
+      const projects = await (prisma.project as any).findMany({
             where: {
                   ...(category ? { category } : {}),
                   ...(userId ? { userId } : {}),
+                  ...(isTop === 'true' ? { isTop: true } : {}),
+                  ...(!userId && !isTop ? { eventId: eventId || null } : {}),
             },
             include: {
                   user: true,
@@ -20,11 +24,15 @@ export async function GET(req: NextRequest) {
                         select: { votes: true, feedback: true }
                   }
             },
-            orderBy: {
-                  votes: {
-                        _count: 'desc'
+            orderBy: [
+                  { isPinned: 'desc' },
+                  { isEvent: 'desc' },
+                  {
+                        votes: {
+                              _count: 'desc'
+                        }
                   }
-            }
+            ]
       });
 
       return NextResponse.json(projects);
@@ -45,30 +53,38 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Profile setup required' }, { status: 403 });
       }
 
+      const isAdmin = (user as any).role === 'admin';
+
       const body = await req.json();
-      const { name, description, link, category } = body;
+      const { name, description, link, category, isPinned, isEvent, eventId } = body;
 
       // Check if user already has a project in this category
-      const existingProject = await prisma.project.findFirst({
-            where: {
-                  userId: user.id,
-                  category: category
-            }
-      });
+      if (!isAdmin && !isEvent && !eventId) {
+            const existingProject = await (prisma.project as any).findFirst({
+                  where: {
+                        userId: user.id,
+                        category: category,
+                        eventId: null
+                  }
+            });
 
-      if (existingProject) {
-            return NextResponse.json({
-                  error: `You already have a project in the ${category} category.`
-            }, { status: 400 });
+            if (existingProject) {
+                  return NextResponse.json({
+                        error: `You already have a project in the ${category} category.`
+                  }, { status: 400 });
+            }
       }
 
-      const project = await prisma.project.create({
+      const project = await (prisma.project as any).create({
             data: {
                   name,
                   description,
                   link,
                   category,
                   userId: user.id,
+                  isPinned: isAdmin ? (isPinned || false) : false,
+                  isEvent: isAdmin ? (isEvent || false) : false,
+                  eventId: eventId || null,
             }
       });
 

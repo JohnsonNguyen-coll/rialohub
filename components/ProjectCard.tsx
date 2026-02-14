@@ -2,123 +2,197 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Twitter, MessageSquare, ExternalLink, ThumbsUp } from 'lucide-react';
-
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  link: string;
-  category: string;
-  user: {
-    username: string;
-  };
-  _count: {
-    votes: number;
-    feedback: number;
-  };
-}
+import { MessageSquare, ChevronUp, ExternalLink, Star } from 'lucide-react';
 
 export default function ProjectCard({ 
   project, 
+  rank, 
   onVote, 
-  rank,
-  onViewFeedback
+  isAdmin, 
+  onRefresh,
+  activeTab
 }: { 
   project: any, 
-  onVote: (id: string) => void, 
-  rank: number,
-  onViewFeedback: (project: any) => void
+  rank: number, 
+  onVote: () => void, 
+  isAdmin?: boolean,
+  onRefresh?: () => void,
+  onViewFeedback: () => void,
+  activeTab?: string
 }) {
-  return (
-    <Link href={`/projects/${project.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-      <div style={{
-        backgroundColor: 'var(--card-bg)',
-        borderRadius: '20px',
-        padding: '1.2rem 2rem',
-        border: '1px solid var(--border)',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.02)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '2rem',
-        position: 'relative',
-        transition: 'all 0.2s ease',
-        cursor: 'pointer'
-      }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.transform = 'translateX(5px)';
-        e.currentTarget.style.borderColor = 'var(--accent)';
-        e.currentTarget.style.backgroundColor = 'rgba(212, 163, 115, 0.02)';
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.transform = 'translateX(0)';
-        e.currentTarget.style.borderColor = 'var(--border)';
-        e.currentTarget.style.backgroundColor = 'var(--card-bg)';
-      }}
-      >
-        <div style={{
-          width: '36px',
-          height: '36px',
-          backgroundColor: rank === 0 ? '#FFD700' : rank === 1 ? '#C0C0C0' : rank === 2 ? '#CD7F32' : '#f0f0f0',
-          color: rank < 3 ? 'black' : '#666',
-          borderRadius: '10px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 900,
-          fontSize: '1rem',
-          flexShrink: 0
-        }}>
-          {rank + 1}
-        </div>
+  const handlePin = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = await fetch(`/api/projects/${project.id}/pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPinned: !project.isPinned })
+    });
+    if (res.ok && onRefresh) onRefresh();
+  };
 
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ minWidth: '0' }}>
-            <h3 style={{ fontSize: '1.2rem', marginBottom: '0.2rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {project.name}
-            </h3>
-            <div style={{ fontSize: '0.85rem', color: '#888', fontWeight: 600 }}>
-              by <span style={{ color: 'var(--accent)' }}>@{project.user?.username || 'anonymous'}</span>
-            </div>
-          </div>
-          
-          <span style={{ 
-            fontSize: '0.65rem', 
-            backgroundColor: project.category === 'builder' ? '#E3F2FD' : '#FFF3E0',
-            color: project.category === 'builder' ? '#1E88E5' : '#FB8C00',
-            padding: '0.2rem 0.6rem',
-            borderRadius: '10px',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            marginLeft: 'auto'
-          }}>
-            {project.category}
+  const handleTop = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const res = await fetch(`/api/projects/${project.id}/top`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isTop: !project.isTop })
+    });
+    if (res.ok && onRefresh) onRefresh();
+  };
+
+  const isTopOne = rank === 0 && !project.isPinned && activeTab !== 'top' && !project.isEvent;
+
+  return (
+    <div className="premium-card" style={{ 
+      padding: '1.75rem',
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '1.75rem',
+      backgroundColor: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      borderLeft: project.isPinned ? '4px solid var(--primary)' : '1px solid var(--border)'
+    }}>
+      {/* Decorative Top-Rank Indicator - Hidden for Pinned as it uses borderLeft */}
+      {isTopOne && (
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          width: '4px', 
+          height: '100%', 
+          backgroundColor: 'var(--primary)' 
+        }} />
+      )}
+
+      {/* Vote Engine Integration - Hidden for Events */}
+      {!project.isEvent && (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: '0.25rem',
+          padding: '0.5rem',
+          borderRadius: '12px',
+          backgroundColor: '#f8fafc',
+          minWidth: '50px'
+        }}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onVote(); }}
+            style={{ 
+              color: 'var(--primary)', 
+              padding: '4px', 
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              background: 'none',
+              border: 'none'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <ChevronUp size={24} strokeWidth={3} />
+          </button>
+          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--foreground)' }}>
+             {project._count?.votes || 0}
           </span>
         </div>
+      )}
 
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#666' }}>
-            <MessageSquare size={18} />
-            <span style={{ fontWeight: 700 }}>{project._count?.feedback || 0}</span>
-          </div>
-          
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.6rem', 
-            backgroundColor: 'rgba(212, 163, 115, 0.1)', 
-            color: 'var(--accent)',
-            padding: '0.6rem 1.2rem',
-            borderRadius: '14px',
-            fontWeight: 900,
-            minWidth: '80px',
-            justifyContent: 'center'
-          }}>
-            <ThumbsUp size={18} fill="currentColor" />
-            {project._count?.votes || 0}
+      {/* Structured Content Area */}
+      <div style={{ flex: 1, paddingLeft: project.isEvent ? '0.5rem' : '0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <Link href={`/projects/${project.id}`} style={{ textDecoration: 'none' }}>
+            <h3 style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: 800, 
+              color: 'var(--foreground)'
+            }}>
+              {project.name}
+            </h3>
+          </Link>
+          <div style={{ display: 'flex', gap: '0.4rem' }}>
+            {project.isPinned && (
+               <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', backgroundColor: 'var(--foreground)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>Pinned</span>
+            )}
+            {project.isTop && (
+               <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', backgroundColor: '#4f46e5', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                 <Star size={10} fill="white" /> Handpicked
+               </span>
+            )}
+            {isTopOne && (
+               <span style={{ fontSize: '0.6rem', fontWeight: 900, textTransform: 'uppercase', backgroundColor: '#eef2ff', color: 'var(--primary)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>Community Choice</span>
+            )}
           </div>
         </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+           <div style={{ fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: 600 }}>
+             built by <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>@{project.user?.username}</span>
+           </div>
+           <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'var(--muted)' }} />
+           <div style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 500 }}>
+              {new Date(project.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+           </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--secondary)' }}>
+              <MessageSquare size={16} color="var(--muted)" /> {project._count?.feedback || 0} discussion
+           </div>
+           
+           {project.link !== '#' && (
+              <a 
+                href={project.link} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', textDecoration: 'none' }}
+              >
+                Launch <ExternalLink size={14} />
+              </a>
+           )}
+        </div>
       </div>
-    </Link>
+
+      {/* Administrative Focus */}
+      {isAdmin && (
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              onClick={handlePin}
+              style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 700, 
+                padding: '0.4rem 0.75rem', 
+                border: '1px solid var(--border)', 
+                borderRadius: '8px',
+                color: 'var(--secondary)',
+                backgroundColor: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              {project.isPinned ? 'Unpin' : 'Pin'}
+            </button>
+            <button 
+              onClick={handleTop}
+              style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 700, 
+                padding: '0.4rem 0.75rem', 
+                border: project.isTop ? '1px solid var(--primary)' : '1px solid var(--border)', 
+                borderRadius: '8px',
+                color: project.isTop ? 'var(--primary)' : 'var(--secondary)',
+                backgroundColor: project.isTop ? '#eef2ff' : 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Star size={12} fill={project.isTop ? 'var(--primary)' : 'none'} />
+              {project.isTop ? 'Starred' : 'Star'}
+            </button>
+        </div>
+      )}
+    </div>
   );
 }

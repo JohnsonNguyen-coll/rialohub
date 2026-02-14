@@ -36,11 +36,12 @@ model Session {
 model User {
   id            String     @id @default(cuid())
   name          String?
-  email         String?    @unique
+  email         String?
   emailVerified DateTime?
   image         String?
   username      String?    @unique
   password      String?
+  role          String     @default("user") // Added role
   twitterHandle String?
   twitterId     String?
   discordHandle String?
@@ -67,10 +68,16 @@ model Project {
   description String
   link        String
   category    String
+  isPinned    Boolean    @default(false)
+  isEvent     Boolean    @default(false)
+  isTop       Boolean    @default(false)
+  eventId     String?    // Added for entries within events
   createdAt   DateTime   @default(now())
   feedback    Feedback[]
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   votes       Vote[]
+  event       Project?   @relation("EventEntries", fields: [eventId], references: [id])
+  entries     Project[]  @relation("EventEntries")
 }
 
 model Vote {
