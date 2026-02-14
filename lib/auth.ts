@@ -60,34 +60,7 @@ export const authOptions: NextAuthOptions = {
       },
       callbacks: {
             async signIn({ user, account, profile }: any) {
-                  // Always allow credentials login
-                  if (account.provider === "credentials") return true;
-
-                  // Find if this social account is already linked
-                  const existingAccount = await prisma.account.findUnique({
-                        where: {
-                              provider_providerAccountId: {
-                                    provider: account.provider,
-                                    providerAccountId: account.providerAccountId
-                              }
-                        }
-                  });
-
-                  // If it's already linked, allow the sign-in ONLY IF the user has a username
-                  if (existingAccount) {
-                        const linkedUser = await prisma.user.findUnique({ where: { id: existingAccount.userId } });
-                        if (!linkedUser || !linkedUser.username) {
-                              throw new Error("Direct social login is disabled. Please sign in with your username/password first.");
-                        }
-                        return true;
-                  }
-
-                  // IMPORTANT: To prevent "Direct Social Signup", we blow up if no username exists
-                  // This forces the user to go through the Credentials flow first.
-                  if (!user.username) {
-                        throw new Error("Direct social login is disabled. Please sign in with your username/password first, then connect socials in your profile.");
-                  }
-
+                  // Allow all sign-ins
                   return true;
             },
             async jwt({ token, user, account }: any) {
