@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { X, User as UserIcon, ArrowRight, MessageSquare, Twitter, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AuthAndProfile({ 
   onComplete, 
@@ -41,11 +42,13 @@ export default function AuthAndProfile({
         body: JSON.stringify({ username: rialoUsername })
       });
       if (res.ok) { 
-        window.location.reload();
+        toast.success('Username updated! Welcome to RialoHub.');
+        setTimeout(() => window.location.reload(), 1000);
       }
       else {
         const data = await res.json();
         setError(data.error);
+        toast.error(data.error || 'Failed to save username');
       }
     } finally {
       setLoading(null);
@@ -58,6 +61,7 @@ export default function AuthAndProfile({
     const result = await signIn('credentials', { username, password, redirect: false });
     if (result?.error) {
       setError('Invalid credentials');
+      toast.error('Invalid username or password');
       setLoading(null);
     }
   };

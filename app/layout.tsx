@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
+import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
   title: "RialoHub | Builder Hub & Shark Tank",
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           {children}
+          <Toaster position="top-center" richColors />
         </AuthProvider>
       </body>
     </html>

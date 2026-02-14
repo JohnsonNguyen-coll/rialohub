@@ -8,6 +8,7 @@ import { ThumbsUp, MessageSquare, ExternalLink, ArrowLeft, User, Calendar, Tag, 
 import ProjectCard from '@/components/ProjectCard';
 import SubmitProjectForm from '@/components/SubmitProjectForm';
 import ProfileSetup from '@/components/ProfileSetup';
+import { toast } from 'sonner';
 
 const FeedbackItem = ({ 
   item, 
@@ -217,9 +218,10 @@ export default function ProjectPage() {
     if (res.ok) {
       fetchEntries();
       setShowEntryModal(false);
+      toast.success('Project submitted successfully!');
     } else {
       const err = await res.json();
-      alert(err.error || 'Failed to submit project');
+      toast.error(err.error || 'Failed to submit project');
     }
   };
 

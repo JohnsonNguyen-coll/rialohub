@@ -50,11 +50,21 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
   };
 
   const handleLink = () => {
-    const url = prompt('Enter URL:');
-    if (url) execCommand('createLink', url);
+    setShowLinkPrompt(true);
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLinkPrompt, setShowLinkPrompt] = useState(false);
+  const [promptLink, setPromptLink] = useState('');
+
+  const handleLinkSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (promptLink) {
+      execCommand('createLink', promptLink);
+      setPromptLink('');
+      setShowLinkPrompt(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,6 +251,40 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
           </button>
         </form>
       </div>
+
+      {showLinkPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 2000, padding: '1.5rem'
+        }}>
+          <div className="premium-card" style={{ width: '100%', maxWidth: '360px', padding: '2rem', backgroundColor: 'white' }}>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem' }}>Insert Link</h4>
+            <form onSubmit={handleLinkSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <input 
+                autoFocus
+                type="url" 
+                required
+                placeholder="https://example.com"
+                value={promptLink}
+                onChange={(e) => setPromptLink(e.target.value)}
+                style={{
+                  width: '100%', padding: '0.85rem 1rem',
+                  borderRadius: '10px', border: '1px solid var(--border)',
+                  outline: 'none', fontSize: '0.95rem'
+                }}
+              />
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setShowLinkPrompt(false)} className="sidebar-nav-item" style={{ justifyContent: 'center', padding: '0.75rem' }}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ flex: 1, padding: '0.75rem' }}>Insert</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
