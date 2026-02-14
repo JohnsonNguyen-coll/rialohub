@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import { ThumbsUp, MessageSquare, ExternalLink, ArrowLeft, User, Calendar, Tag, Send, PlusCircle, Trophy, Zap, Clock, Share2, Sparkles } from 'lucide-react';
 import ProjectCard from '@/components/ProjectCard';
 import SubmitProjectForm from '@/components/SubmitProjectForm';
+import ProfileSetup from '@/components/ProfileSetup';
 
 const FeedbackItem = ({ 
   item, 
@@ -32,9 +33,9 @@ const FeedbackItem = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <div style={{ fontWeight: 800, color: 'var(--foreground)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
-               {item.user.username.substring(0, 1).toUpperCase()}
+               {(item.user?.username || item.user?.name || 'A').substring(0, 1).toUpperCase()}
             </div>
-            @{item.user.username}
+            @{item.user?.username || item.user?.name || 'Anonymous'}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600 }}>
             {new Date(item.createdAt).toLocaleDateString()}
@@ -62,26 +63,19 @@ const FeedbackItem = ({
             gap: '0.25rem'
           }}
         >
-          <MessageSquare size={12} /> {replyTo === item.id ? 'Cancel' : 'Reply'}
+          <MessageSquare size={14} /> {replyTo === item.id ? 'Cancel Reply' : 'Reply'}
         </button>
 
         {replyTo === item.id && (
-          <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <textarea 
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
-              placeholder={`Write your response to @${item.user.username}...`}
+              placeholder="Write your response..."
               style={{
-                width: '100%',
-                padding: '1rem',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--primary)',
-                outline: 'none',
-                fontSize: '0.95rem',
-                minHeight: '100px',
-                resize: 'none',
-                backgroundColor: 'white',
-                boxShadow: '0 0 0 4px rgba(99, 102, 241, 0.05)'
+                width: '100%', padding: '1rem', borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)', outline: 'none', minHeight: '80px',
+                fontSize: '0.9rem', resize: 'none'
               }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -89,9 +83,9 @@ const FeedbackItem = ({
                 onClick={() => handleReply(item.id)}
                 disabled={submitting || !replyContent.trim()}
                 className="btn-primary"
-                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
+                style={{ fontSize: '0.75rem', padding: '0.5rem 1.5rem' }}
               >
-                Post Reply
+                {submitting ? '...' : 'Post Reply'}
               </button>
             </div>
           </div>
@@ -99,7 +93,7 @@ const FeedbackItem = ({
       </div>
 
       {item.replies && item.replies.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderLeft: '2px solid #eef2ff', paddingLeft: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {item.replies.map((reply: any) => (
             <FeedbackItem 
               key={reply.id} 
@@ -120,33 +114,40 @@ const FeedbackItem = ({
   );
 };
 
-export default function ProjectDetail() {
-  const params = useParams();
-  const id = params.id as string;
+export default function ProjectPage() {
+  const { id } = useParams();
   const router = useRouter();
   const { data: session }: any = useSession();
-  
   const [project, setProject] = useState<any>(null);
-  const [entries, setEntries] = useState<any[]>([]);
-  const [feedbacks, setFeedbacks] = useState<any[]>([]);
-  const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [comment, setComment] = useState('');
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [entries, setEntries] = useState<any[]>([]);
   const [voted, setVoted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showEntryModal, setShowEntryModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'submit'>('signin');
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     if (id) {
       fetchProject();
       fetchFeedback();
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (project?.isEvent) {
       fetchEntries();
     }
-  }, [project]);
+    if (session?.user) {
+      fetchProfile();
+    }
+  }, [id, session]);
+
+  const fetchProfile = async () => {
+    const res = await fetch('/api/profile');
+    if (res.ok) {
+      const data = await res.json();
+      setUserProfile(data);
+    }
+  };
 
   const fetchProject = async () => {
     const res = await fetch(`/api/projects/${id}`);
@@ -177,11 +178,23 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleVote = async () => {
-    if (!session) {
-      alert('Please login to vote');
-      return;
+  const checkVerified = () => {
+    const user = userProfile || session?.user;
+    if (!user) {
+      setAuthMode('signin');
+      setShowAuthModal(true);
+      return false;
     }
+    if (!user.twitterId || !user.discordId) {
+      setAuthMode('signin');
+      setShowAuthModal(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleVote = async () => {
+    if (!checkVerified()) return;
     const res = await fetch(`/api/projects/${id}/vote`, { method: 'POST' });
     if (res.ok) {
       const data = await res.json();
@@ -214,7 +227,8 @@ export default function ProjectDetail() {
   const [replyContent, setReplyContent] = useState('');
 
   const handleReply = async (parentId: string) => {
-    if (!replyContent.trim() || !session || submitting) return;
+    if (!checkVerified()) return;
+    if (!replyContent.trim() || submitting) return;
 
     setSubmitting(true);
     try {
@@ -236,7 +250,8 @@ export default function ProjectDetail() {
 
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!comment.trim() || !session || submitting) return;
+    if (!checkVerified()) return;
+    if (!comment.trim() || submitting) return;
 
     setSubmitting(true);
     try {
@@ -265,9 +280,11 @@ export default function ProjectDetail() {
 
   if (!project) return <div style={{ display: 'flex', justifyContent: 'center', padding: '10rem', fontWeight: 700 }}>Project not found</div>;
 
+  const isAdmin = userProfile?.role === 'admin' || session?.user?.role === 'admin';
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
-      <Navbar onConnect={() => {}} user={session?.user} activeTab="" setActiveTab={() => {}} />
+      <Navbar onConnect={() => { setAuthMode('signin'); setShowAuthModal(true); }} user={userProfile || session?.user} activeTab="" setActiveTab={() => {}} />
       
       {/* Dynamic Hero Header */}
       <div style={{ 
@@ -279,7 +296,7 @@ export default function ProjectDetail() {
       }}>
          <div className="container" style={{ position: 'relative', zIndex: 10 }}>
             <button 
-              onClick={() => router.push('/')}
+              onClick={() => router.push(project.isEvent ? '/?tab=sharktank' : '/')}
               style={{ 
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem', 
                 color: project.isEvent ? 'rgba(255,255,255,0.6)' : 'var(--secondary)', 
@@ -311,7 +328,7 @@ export default function ProjectDetail() {
                   <div style={{ display: 'flex', gap: '2rem', fontSize: '0.9rem', fontWeight: 600 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: project.isEvent ? 'white' : 'var(--foreground)' }}>
                       <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', color: 'white' }}>
-                         {project.user?.username.substring(0, 1).toUpperCase()}
+                         {(project.user?.username || 'U').substring(0, 1).toUpperCase()}
                       </div>
                       @{project.user?.username}
                     </div>
@@ -380,7 +397,7 @@ export default function ProjectDetail() {
                      <h2 style={{ fontSize: '2.25rem', fontWeight: 800 }}>Arena Submissions</h2>
                   </div>
                   <button 
-                    onClick={() => { if (!session) return; setShowEntryModal(true); }}
+                    onClick={() => { if (checkVerified()) setShowEntryModal(true); }}
                     className="btn-primary"
                     style={{ padding: '1rem 2.5rem' }}
                   >
@@ -395,9 +412,10 @@ export default function ProjectDetail() {
                       project={entry} 
                       rank={entry.isPinned ? -1 : idx} 
                       onVote={() => fetchEntries()} 
-                      isAdmin={session?.user?.role === 'admin'}
+                      isAdmin={isAdmin}
                       onRefresh={() => fetchEntries()}
                       onViewFeedback={() => router.push(`/projects/${entry.id}`)}
+                      activeTab="sharktank"
                     />
                   ))}
                   {entries.length === 0 && (
@@ -528,12 +546,29 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {showEntryModal && (
+      {(showEntryModal && (userProfile || session?.user) && (userProfile?.twitterId || session?.user?.twitterId) && (userProfile?.discordId || session?.user?.discordId)) ? (
         <SubmitProjectForm 
-          user={session?.user}
+          user={userProfile || session?.user}
           title={`Arena Entry: ${project?.name}`}
           onCancel={() => setShowEntryModal(false)}
           onSubmit={handleEntrySubmit}
+        />
+      ) : showEntryModal ? (
+        <ProfileSetup 
+          currentProfile={userProfile}
+          onComplete={(u) => { setUserProfile(u); setShowEntryModal(true); }}
+          onCancel={() => setShowEntryModal(false)}
+        />
+      ) : null}
+
+      {showAuthModal && (
+        <ProfileSetup 
+          currentProfile={userProfile} 
+          onComplete={(u) => { 
+            setUserProfile(u); 
+            setShowAuthModal(false); 
+          }} 
+          onCancel={() => setShowAuthModal(false)}
         />
       )}
     </main>

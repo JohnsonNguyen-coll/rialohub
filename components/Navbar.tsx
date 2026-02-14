@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { signOut } from 'next-auth/react';
+import { signOut, signIn } from 'next-auth/react';
 import { LogOut, User as UserIcon, Bell, Menu, MessageSquare, ThumbsUp, ArrowRight } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, user, onConnect }: { 
@@ -19,8 +19,8 @@ export default function Navbar({ activeTab, setActiveTab, user, onConnect }: {
   useEffect(() => {
     if (displayUser) {
       fetchNotifications();
-      // Poll every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
+      // Poll every 60 seconds
+      const interval = setInterval(fetchNotifications, 60000);
       return () => clearInterval(interval);
     }
   }, [displayUser]);
@@ -72,12 +72,11 @@ export default function Navbar({ activeTab, setActiveTab, user, onConnect }: {
         {/* Branding Area */}
         <div style={{ width: 'var(--sidebar-width)', display: 'flex', alignItems: 'center' }}>
            <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-             <div style={{ 
-               width: '32px', height: '32px', borderRadius: '8px', 
-               background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)',
-               display: 'flex', alignItems: 'center', justifyContent: 'center',
-               color: 'white', fontWeight: 900, fontSize: '1rem'
-             }}>R</div>
+             <img 
+               src="/assets/logo.png" 
+               alt="RialoHub Logo" 
+               style={{ width: '32px', height: '32px', borderRadius: '8px', objectFit: 'contain' }} 
+             />
              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-1.5px' }}>
                 RIALO<span style={{ fontWeight: 400, color: 'var(--secondary)' }}>HUB</span>
              </span>
@@ -201,7 +200,7 @@ export default function Navbar({ activeTab, setActiveTab, user, onConnect }: {
                   backgroundColor: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontWeight: 800, fontSize: '0.85rem'
                 }}>
-                  {displayUser.username.substring(0, 1).toUpperCase()}
+                  {(displayUser.username || displayUser.name || 'U').substring(0, 1).toUpperCase()}
                 </div>
                 <button 
                   onClick={() => signOut()}

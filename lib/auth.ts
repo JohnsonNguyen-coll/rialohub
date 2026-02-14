@@ -64,11 +64,13 @@ export const authOptions: NextAuthOptions = {
                         // On subsequent calls, if role is missing, fetch it
                         const dbUser: any = await prisma.user.findUnique({
                               where: { id: token.sub },
-                              select: { role: true, username: true } as any
+                              select: { role: true, username: true, twitterId: true, discordId: true } as any
                         });
                         if (dbUser) {
                               token.role = dbUser.role;
                               token.username = dbUser.username;
+                              token.twitterId = dbUser.twitterId;
+                              token.discordId = dbUser.discordId;
                         }
                   }
                   return token
@@ -78,6 +80,8 @@ export const authOptions: NextAuthOptions = {
                         session.user.id = token.sub;
                         session.user.username = token.username;
                         session.user.role = token.role;
+                        session.user.twitterId = token.twitterId;
+                        session.user.discordId = token.discordId;
                   }
                   return session
             },

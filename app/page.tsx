@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import ProjectCard from '../components/ProjectCard';
 import ProfileSetup from '../components/ProfileSetup';
 import SubmitProjectForm from '../components/SubmitProjectForm';
+import { useSearchParams } from 'next/navigation';
 import { 
   Trophy, 
   Search, 
@@ -25,13 +26,22 @@ import {
 
 export default function Home() {
   const { data: session }: any = useSession();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('builder');
   const [viewMode, setViewMode] = useState<'all' | 'mine'>('all');
   const [userProfile, setUserProfile] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'submit'>('submit');
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && (tab === 'builder' || tab === 'sharktank' || tab === 'top')) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchProjects();
@@ -84,11 +94,22 @@ export default function Home() {
 
   const handleVote = async (id: string) => {
     if (!userProfile && !session?.user) {
+      setAuthMode('signin');
       setShowSubmitModal(true);
       return;
     }
+    const user = userProfile || session?.user;
+    if (!user?.twitterId || !user?.discordId) {
+       setAuthMode('signin');
+       setShowSubmitModal(true);
+       return;
+    }
     const res = await fetch(`/api/projects/${id}/vote`, { method: 'POST' });
     if (res.ok) fetchProjects();
+    else if (res.status === 403) {
+       setAuthMode('signin');
+       setShowSubmitModal(true);
+    }
   };
 
   const handleSubmitProject = async (data: any) => {
@@ -121,7 +142,7 @@ export default function Home() {
         activeTab={activeTab === 'top' ? '' : activeTab} 
         setActiveTab={setActiveTab} 
         user={userProfile || session?.user} 
-        onConnect={() => setShowSubmitModal(true)} 
+        onConnect={() => { setAuthMode('signin'); setShowSubmitModal(true); }} 
       />
       
       <div className="layout-wrapper">
@@ -145,9 +166,9 @@ export default function Home() {
           <div>
              <h5 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '1.25rem', paddingLeft: '1rem' }}>Community</h5>
              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                <a href="#" className="sidebar-nav-item"><MessageSquare size={18} /> Discord</a>
-                <a href="#" className="sidebar-nav-item"><BookOpen size={18} /> Knowledge Base</a>
-                <a href="#" className="sidebar-nav-item"><LinkIcon size={18} /> Ecosystem</a>
+                <a href="https://discord.gg/TCbA4pRe" target="_blank" rel="noopener noreferrer" className="sidebar-nav-item"><MessageSquare size={18} /> Discord</a>
+                <a href="https://learn.rialo.io/" target="_blank" rel="noopener noreferrer" className="sidebar-nav-item"><BookOpen size={18} /> Knowledge Base</a>
+                <a href="https://www.rialo.io/" target="_blank" rel="noopener noreferrer" className="sidebar-nav-item"><LinkIcon size={18} /> Ecosystem</a>
              </div>
           </div>
         </aside>
@@ -157,7 +178,10 @@ export default function Home() {
           {/* Banner */}
           <div style={{ 
             borderRadius: 'var(--radius-lg)', 
-            background: 'linear-gradient(135deg, #1e1e1e 0%, #000000 100%)',
+            backgroundColor: '#000',
+            backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)), url("/assets/1500x500.png")',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             padding: '3.5rem',
             marginBottom: '3rem',
             position: 'relative',
@@ -174,10 +198,22 @@ export default function Home() {
                       {activeTab === 'top' ? 'Elite Curation' : 'Now Trending'}
                    </span>
                 </div>
-                <h1 style={{ fontSize: '2.75rem', fontWeight: 800, letterSpacing: '-2px', lineHeight: 1.1, marginBottom: '1rem' }}>
+                <h1 style={{ 
+                  fontSize: '2.75rem', 
+                  fontWeight: 800, 
+                  letterSpacing: '-2px', 
+                  lineHeight: 1.1, 
+                  marginBottom: '1rem',
+                  textShadow: '0 2px 15px rgba(0,0,0,0.4)'
+                }}>
                   {activeTab === 'builder' ? 'The Hub of Innovation.' : activeTab === 'sharktank' ? 'Shark Tank Arena.' : 'Elite Handpicked Gallery.'}
                 </h1>
-                <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
+                <p style={{ 
+                  fontSize: '1rem', 
+                  color: 'rgba(255,255,255,0.85)', 
+                  fontWeight: 500,
+                  textShadow: '0 1px 8px rgba(0,0,0,0.4)'
+                }}>
                   {activeTab === 'builder' 
                     ? 'Discover the most ambitious projects from the global builder community.' 
                     : activeTab === 'sharktank' ? 'Watch or join the most high-stakes pitches in the ecosystem.'
@@ -207,7 +243,7 @@ export default function Home() {
                   }}
                 />
              </div>
-             <button onClick={() => setShowSubmitModal(true)} className="btn-primary" style={{ padding: '0 2rem' }}>
+             <button onClick={() => { setAuthMode('submit'); setShowSubmitModal(true); }} className="btn-primary" style={{ padding: '0 2rem' }}>
                 <PlusCircle size={18} /> Create Post
              </button>
           </div>
@@ -291,32 +327,20 @@ export default function Home() {
             <div className="premium-card" style={{ marginBottom: '2rem', textAlign: 'center', backgroundColor: 'var(--foreground)', color: 'white', border: 'none' }}>
                <h4 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '0.75rem' }}>Join the Network</h4>
                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1.5rem' }}>Experience the full potential of RialoHub by creating your builder profile.</p>
-               <button onClick={() => setShowSubmitModal(true)} className="btn-primary" style={{ width: '100%', background: 'white', color: 'black' }}>
+               <button onClick={() => { setAuthMode('signin'); setShowSubmitModal(true); }} className="btn-primary" style={{ width: '100%', background: 'white', color: 'black' }}>
                   Get Started
                </button>
             </div>
           )}
 
-          <div style={{ padding: '0 0.5rem' }}>
-             <h5 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--muted)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '1.5rem' }}>Trending Topics</h5>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {[
-                  { tag: '#nextjs', count: '124 posts' },
-                  { tag: '#ai_tools', count: '89 posts' },
-                  { tag: '#web3_future', count: '64 posts' },
-                ].map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                     <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{item.tag}</span>
-                     <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{item.count}</span>
-                  </div>
-                ))}
-             </div>
-          </div>
         </aside>
       </div>
 
       {showSubmitModal && (
-        (session?.user || userProfile) ? (
+        ((session?.user || userProfile) && 
+         authMode === 'submit' && 
+         (userProfile?.twitterId || session?.user?.twitterId) && 
+         (userProfile?.discordId || session?.user?.discordId)) ? (
           <SubmitProjectForm 
             user={userProfile || session?.user}
             onCancel={() => setShowSubmitModal(false)}

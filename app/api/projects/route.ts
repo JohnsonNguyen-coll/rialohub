@@ -53,6 +53,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Profile setup required' }, { status: 403 });
       }
 
+      if (!user.twitterId || !user.discordId) {
+            return NextResponse.json({ error: 'X and Discord connection required' }, { status: 403 });
+      }
+
       const isAdmin = (user as any).role === 'admin';
 
       const body = await req.json();

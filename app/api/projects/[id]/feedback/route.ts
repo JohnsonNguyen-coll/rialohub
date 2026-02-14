@@ -14,7 +14,7 @@ export async function GET(
             const allFeedbacks = await (prisma.feedback as any).findMany({
                   where: { projectId: projectId },
                   include: {
-                        user: { select: { username: true } }
+                        user: { select: { username: true, name: true } as any }
                   },
                   orderBy: { createdAt: 'asc' }
             });
@@ -60,6 +60,10 @@ export async function POST(
 
             if (!user || (!user.username && !user.name)) {
                   return NextResponse.json({ error: 'Profile setup required' }, { status: 403 });
+            }
+
+            if (!user.twitterId || !user.discordId) {
+                  return NextResponse.json({ error: 'X and Discord connection required' }, { status: 403 });
             }
 
             const { content, parentId } = await req.json();
