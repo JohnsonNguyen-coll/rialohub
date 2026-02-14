@@ -98,9 +98,32 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
         position: 'relative',
         border: '1px solid var(--border)'
       }}>
-        <button onClick={onCancel} style={{ position: 'absolute', top: '2rem', right: '2rem', color: 'var(--muted)' }}><X size={20} /></button>
+        <button 
+          onClick={onCancel} 
+          style={{ 
+            position: 'absolute', 
+            top: '1.5rem', 
+            right: '1.5rem', 
+            color: 'var(--muted)', 
+            background: 'none', 
+            border: 'none', 
+            cursor: 'pointer',
+            width: '36px',
+            height: '36px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease',
+            backgroundColor: 'var(--surface)'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--surface)'}
+        >
+          <X size={20} />
+        </button>
 
-        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '2rem', letterSpacing: '-1px' }}>{title || 'Create Post'}</h2>
+        <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '2rem', letterSpacing: '-0.5px' }}>{title || 'Create Post'}</h2>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div>
@@ -147,16 +170,50 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
               overflow: 'hidden'
             }}>
               <div style={{ 
-                padding: '0.5rem', 
-                backgroundColor: 'var(--beige-light)', 
+                padding: '0.6rem', 
+                backgroundColor: 'var(--surface)', 
                 borderBottom: '1px solid var(--border)',
-                display: 'flex', gap: '0.25rem'
+                display: 'flex', gap: '0.4rem',
+                alignItems: 'center'
               }}>
-                <button type="button" onClick={() => execCommand('bold')} style={{ padding: '0.4rem', borderRadius: '4px' }}><Bold size={16} /></button>
-                <button type="button" onClick={() => execCommand('italic')} style={{ padding: '0.4rem', borderRadius: '4px' }}><Italic size={16} /></button>
-                <button type="button" onClick={() => handleLink()} style={{ padding: '0.4rem', borderRadius: '4px' }}><LinkIcon size={16} /></button>
+                {[
+                  { icon: <Bold size={18} />, cmd: 'bold' },
+                  { icon: <Italic size={18} />, cmd: 'italic' },
+                  { icon: <LinkIcon size={18} />, action: handleLink },
+                  { icon: <ImageIcon size={18} />, action: () => fileInputRef.current?.click() },
+                ].map((btn, idx) => (
+                  <button 
+                    key={idx}
+                    type="button" 
+                    onClick={() => btn.action ? btn.action() : execCommand(btn.cmd!)} 
+                    style={{ 
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--secondary)',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                      e.currentTarget.style.color = 'var(--primary)';
+                      e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = 'var(--secondary)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {btn.icon}
+                  </button>
+                ))}
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
-                <button type="button" onClick={() => fileInputRef.current?.click()} style={{ padding: '0.4rem', borderRadius: '4px' }}><ImageIcon size={16} /></button>
               </div>
               <div 
                 ref={editorRef}
