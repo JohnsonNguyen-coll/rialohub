@@ -79,9 +79,9 @@ export default function Navbar({ activeTab, setActiveTab, user, onConnect }: {
             {displayUser ? (
                <>
                  <div style={{ position: 'relative' }} ref={notifRef}>
-                    <button onClick={() => { setShowNotif(!showNotif); if(!showNotif) markAsRead(); }} style={{ background: 'none', border: 'none', padding: '0.5rem', color: 'var(--secondary)', cursor: 'pointer', position: 'relative' }}>
+                    <button onClick={() => { setShowNotif(!showNotif); if(!showNotif) markAsRead(); }} style={{ background: 'none', border: 'none', padding: '0.5rem', color: 'var(--secondary)', cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Bell size={22} />
-                      {notifications.some(n => !n.isRead) && <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%', border: '2px solid white' }}></span>}
+                      {notifications.some(n => !n.isRead) && <span style={{ position: 'absolute', top: '0.3rem', right: '0.3rem', width: '10px', height: '10px', background: '#ef4444', borderRadius: '50%', border: '2px solid white' }}></span>}
                     </button>
                     {showNotif && (
                       <div className="premium-card" style={{ position: 'absolute', top: '100%', right: 0, width: '360px', marginTop: '1rem', padding: '1.5rem', maxHeight: '480px', overflowY: 'auto', border: '1px solid var(--border)' }}>
@@ -139,13 +139,13 @@ export default function Navbar({ activeTab, setActiveTab, user, onConnect }: {
               <p style={{ color: 'var(--muted)', fontSize: '0.85rem', fontWeight: 600 }}>RialoHub Builder</p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ padding: '0.5rem', borderRadius: '8px', background: '#000', color: 'white' }}><Twitter size={18} /></div>
-                <div><div style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase' }}>X (Twitter)</div><div style={{ fontWeight: 700 }}>{displayUser?.twitterHandle ? `@${displayUser.twitterHandle}` : 'Not Connected'}</div></div>
+              <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#000', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Twitter size={18} /></div>
+                <div><div style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase', marginBottom: '2px' }}>X (Twitter)</div><div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--foreground)' }}>{displayUser?.twitterHandle ? `@${displayUser.twitterHandle}` : 'Not Connected'}</div></div>
               </div>
-              <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ padding: '0.5rem', borderRadius: '8px', background: '#5865F2', color: 'white' }}><MessageCircle size={18} /></div>
-                <div><div style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase' }}>Discord</div><div style={{ fontWeight: 700 }}>{displayUser?.discordHandle || 'Not Connected'}</div></div>
+              <div style={{ padding: '1rem', borderRadius: '12px', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#5865F2', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MessageCircle size={18} /></div>
+                <div><div style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase', marginBottom: '2px' }}>Discord</div><div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--foreground)' }}>{displayUser?.discordHandle || 'Not Connected'}</div></div>
               </div>
             </div>
             <button onClick={() => signOut()} className="btn-primary" style={{ width: '100%', marginTop: '2rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fee2e2', justifyContent: 'center', padding: '1rem' }}>Sign Out</button>
