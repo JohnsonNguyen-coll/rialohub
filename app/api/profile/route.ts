@@ -6,7 +6,9 @@ import { prisma } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
       const session = await getServerSession(authOptions);
-      if (!session?.user?.email) {
+      const userId = (session?.user as any)?.id;
+
+      if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
             where: {
                   username: username,
                   NOT: {
-                        email: session.user.email
+                        id: userId
                   }
             }
       });
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
                   where: {
                         twitterId: twitterId,
                         NOT: {
-                              email: session.user.email
+                              id: userId
                         }
                   }
             });
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
                   where: {
                         discordId: discordId,
                         NOT: {
-                              email: session.user.email
+                              id: userId
                         }
                   }
             });
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
       }
 
       const updatedUser = await prisma.user.update({
-            where: { email: session.user.email },
+            where: { id: userId },
             data: {
                   username,
                   twitterHandle,
@@ -78,12 +80,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
       const session = await getServerSession(authOptions);
-      if (!session?.user?.email) {
+      const userId = (session?.user as any)?.id;
+
+      if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
       const user = await prisma.user.findUnique({
-            where: { email: session.user.email },
+            where: { id: userId },
             include: {
                   projects: true
             }

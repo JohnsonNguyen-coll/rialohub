@@ -40,6 +40,7 @@ model User {
   emailVerified DateTime?
   image         String?
   username      String?    @unique
+  password      String?
   twitterHandle String?
   twitterId     String?
   discordHandle String?
@@ -84,11 +85,14 @@ model Vote {
 }
 
 model Feedback {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   userId    String
   projectId String
   content   String
-  createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId  String?
+  createdAt DateTime   @default(now())
+  parent    Feedback?  @relation("FeedbackToFeedback", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Feedback[] @relation("FeedbackToFeedback")
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -10,13 +10,14 @@ export async function POST(
 ) {
       const { id: projectId } = await params;
       const session = await getServerSession(authOptions);
+      const userId = (session?.user as any)?.id;
 
-      if (!session?.user?.email) {
+      if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
       const user = await prisma.user.findUnique({
-            where: { email: session.user.email }
+            where: { id: userId }
       });
 
       if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });

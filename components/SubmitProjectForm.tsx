@@ -13,14 +13,36 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user }: {
   const [category, setCategory] = useState<'builder' | 'sharktank'>('builder');
   const editorRef = useRef<HTMLDivElement>(null);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const execCommand = (command: string, value: string = '') => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
   };
 
-  const handleImageUpload = () => {
-    const url = prompt('Enter image URL:');
-    if (url) execCommand('insertImage', url);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const { url } = await res.json();
+        execCommand('insertImage', url);
+      } else {
+        alert('Upload failed');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Upload failed');
+    }
   };
 
   const handleLink = () => {
@@ -28,18 +50,26 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user }: {
     if (url) execCommand('createLink', url);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !link) return;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !link || isSubmitting) return;
+
+    setIsSubmitting(true);
     const content = editorRef.current?.innerHTML || '';
     
-    onSubmit({
-      name,
-      link,
-      category,
-      description: content,
-    });
+    try {
+      await onSubmit({
+        name,
+        link,
+        category,
+        description: content,
+      });
+    } catch (err) {
+      console.error(err);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -69,7 +99,7 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user }: {
       }}>
         <button 
           onClick={onCancel}
-          style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', color: '#888' }}
+          style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', color: '#888', border: 'none', background: 'none', cursor: 'pointer' }}
         >
           <X size={24} />
         </button>
@@ -126,7 +156,8 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user }: {
                   border: `2px solid ${category === 'builder' ? 'var(--accent)' : 'var(--border)'}`,
                   fontWeight: 800,
                   backgroundColor: category === 'builder' ? 'rgba(212, 163, 115, 0.1)' : 'transparent',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
                 }}
               >
                 Builder Hub
@@ -141,7 +172,8 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user }: {
                   border: `2px solid ${category === 'sharktank' ? 'var(--accent)' : 'var(--border)'}`,
                   fontWeight: 800,
                   backgroundColor: category === 'sharktank' ? 'rgba(212, 163, 115, 0.1)' : 'transparent',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
                 }}
               >
                 Shark Tank
@@ -163,30 +195,55 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user }: {
                 display: 'flex',
                 gap: '0.5rem'
               }}>
-                <button type="button" onClick={() => execCommand('bold')} style={{ padding: '0.5rem', borderRadius: '4px' }}><Bold size={18} /></button>
-                <button type="button" onClick={() => execCommand('italic')} style={{ padding: '0.5rem', borderRadius: '4px' }}><Italic size={18} /></button>
-                <button type="button" onClick={() => handleLink()} style={{ padding: '0.5rem', borderRadius: '4px' }}><LinkIcon size={18} /></button>
-                <button type="button" onClick={() => handleImageUpload()} style={{ padding: '0.5rem', borderRadius: '4px' }}><ImageIcon size={18} /></button>
+                <button type="button" onClick={() => execCommand('bold')} style={{ padding: '0.5rem', borderRadius: '4px', cursor: 'pointer' }}><Bold size={18} /></button>
+                <button type="button" onClick={() => execCommand('italic')} style={{ padding: '0.5rem', borderRadius: '4px', cursor: 'pointer' }}><Italic size={18} /></button>
+                <button type="button" onClick={() => handleLink()} style={{ padding: '0.5rem', borderRadius: '4px', cursor: 'pointer' }}><LinkIcon size={18} /></button>
+                
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleImageUpload} 
+                  accept="image/*" 
+                  style={{ display: 'none' }} 
+                />
+                <button type="button" onClick={() => fileInputRef.current?.click()} style={{ padding: '0.5rem', borderRadius: '4px', cursor: 'pointer' }}><ImageIcon size={18} /></button>
               </div>
               <div 
                 ref={editorRef}
                 contentEditable
+                data-placeholder="Share more about your project... add details, images, and more!"
                 style={{
-                  minHeight: '180px',
+                  minHeight: '200px',
                   padding: '1.2rem',
                   outline: 'none',
                   backgroundColor: 'white',
                   fontSize: '1rem',
-                  lineHeight: '1.5'
+                  lineHeight: '1.6'
                 }}
               />
+              <style jsx global>{`
+                [contenteditable]:empty:before {
+                  content: attr(data-placeholder);
+                  color: #aaa;
+                  cursor: text;
+                }
+                [contenteditable] img {
+                  max-width: 100%;
+                  height: auto;
+                  border-radius: 16px;
+                  margin: 1rem 0;
+                  display: block;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                }
+              `}</style>
             </div>
           </div>
 
           <button 
             type="submit"
+            disabled={isSubmitting}
             style={{
-              backgroundColor: 'var(--primary)',
+              backgroundColor: isSubmitting ? '#ccc' : 'var(--primary)',
               color: 'white',
               padding: '1.1rem',
               borderRadius: '14px',
@@ -197,11 +254,12 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user }: {
               justifyContent: 'center',
               gap: '0.5rem',
               marginTop: '1rem',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer'
             }}
           >
             <Send size={18} />
-            Publish Project
+            {isSubmitting ? 'Publishing...' : 'Publish Project'}
           </button>
         </form>
       </div>

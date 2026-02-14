@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { Twitter, MessageSquare, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Twitter, MessageSquare, CheckCircle2, AlertCircle, X, Lock, User as UserIcon, ArrowRight, Github } from 'lucide-react';
 
-export default function ProfileSetup({ 
+export default function AuthAndProfile({ 
   currentProfile,
   onComplete, 
   onCancel 
@@ -13,59 +13,122 @@ export default function ProfileSetup({
   onComplete: (data: any) => void,
   onCancel: () => void
 }) {
-  const { data: session }: any = useSession();
-  const [rialoUsername, setRialoUsername] = useState(currentProfile?.username || '');
+  const { data: session, status }: any = useSession();
+  const [mode, setMode] = useState<'login' | 'signup' | 'setup'>('login');
   
-  // Local state to track handles and IDs from both current Profile and newest Session
+  // Auth states
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Profile states
+  const [rialoUsername, setRialoUsername] = useState(currentProfile?.username || '');
   const [twitterHandle, setTwitterHandle] = useState(currentProfile?.twitterHandle || '');
   const [twitterId, setTwitterId] = useState(currentProfile?.twitterId || '');
   const [discordHandle, setDiscordHandle] = useState(currentProfile?.discordHandle || '');
   const [discordId, setDiscordId] = useState(currentProfile?.discordId || '');
 
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // When session changes (e.g. after OAuth redirect back), sync the new data
+  // Set mode based on session status and profile completeness
   useEffect(() => {
-    if (session?.user) {
-      if ((session.user as any).provider === 'twitter') {
-        const newHandle = (session.user as any).username || session.user.name || '';
-        const newId = (session.user as any).providerAccountId || '';
-        setTwitterHandle(newHandle);
-        setTwitterId(newId);
-      } else if ((session.user as any).provider === 'discord') {
-        const newHandle = (session.user as any).username || session.user.name || '';
-        const newId = (session.user as any).providerAccountId || '';
-        setDiscordHandle(newHandle);
-        setDiscordId(newId);
+    if (status === 'authenticated') {
+      setMode('setup');
+      if (session?.user?.username) {
+        setRialoUsername(session.user.username);
       }
     }
-  }, [session]);
+  }, [status, session]);
+
+  // Sync state when currentProfile prop changes
+  useEffect(() => {
+    if (currentProfile) {
+      if (currentProfile.username) setRialoUsername(currentProfile.username);
+      if (currentProfile.twitterHandle) setTwitterHandle(currentProfile.twitterHandle);
+      if (currentProfile.twitterId) setTwitterId(currentProfile.twitterId);
+      if (currentProfile.discordHandle) setDiscordHandle(currentProfile.discordHandle);
+      if (currentProfile.discordId) setDiscordId(currentProfile.discordId);
+    }
+  }, [currentProfile]);
+
+  // Sync OAuth data from session
+  useEffect(() => {
+    if (session?.user && mode === 'setup') {
+      if ((session.user as any).provider === 'twitter') {
+        setTwitterHandle((session.user as any).username || session.user.name || '');
+        setTwitterId((session.user as any).providerAccountId || '');
+      } else if ((session.user as any).provider === 'discord') {
+        setDiscordHandle((session.user as any).username || session.user.name || '');
+        setDiscordId((session.user as any).providerAccountId || '');
+      }
+    }
+  }, [session, mode]);
   
-  const isTwitterConnected = !!twitterHandle;
-  const isDiscordConnected = !!discordHandle;
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading('logging-in');
+    setError(null);
+    
+    const result = await signIn('credentials', {
+      username,
+      password,
+      redirect: false,
+    });
 
-  const handleTwitterConnect = () => {
-    signIn('twitter');
+    if (result?.error) {
+      setError('Invalid username or password');
+      setLoading(null);
+    } else {
+      setLoading(null);
+      // Mode will be updated by useEffect on session change
+    }
   };
 
-  const handleDiscordConnect = () => {
-    signIn('discord');
-  };
-
-  const handleEnter = async () => {
-    // Validate username: alphanumeric and underscore only, no spaces
-    const usernameRegex = /^[a-zA-Z0-9_]+$/;
-    if (!usernameRegex.test(rialoUsername)) {
-      alert('Username can only contain letters, numbers, and underscores (no spaces or special characters)');
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
-    if (rialoUsername.length < 3) {
-      alert('Username must be at least 3 characters long');
-      return;
-    }
+    setLoading('signing-up');
+    setError(null);
 
-    setLoading('submitting');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Registration failed');
+        setLoading(null);
+      } else {
+        // Success! Now login automatically
+        const result = await signIn('credentials', {
+          username,
+          password,
+          redirect: false,
+        });
+        
+        if (result?.error) {
+          setMode('login');
+          setError('Account created, please login');
+          setLoading(null);
+        }
+      }
+    } catch (err) {
+      setError('Something went wrong');
+      setLoading(null);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    setLoading('saving');
     try {
       const res = await fetch('/api/profile', {
         method: 'POST',
@@ -94,33 +157,20 @@ export default function ProfileSetup({
     }
   };
 
-  const isFormValid = rialoUsername.length >= 3 && (isTwitterConnected || isDiscordConnected);
+  const isSetupValid = rialoUsername.length >= 3;
 
   return (
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.7)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '1rem'
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.8)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000, padding: '1rem', backdropFilter: 'blur(8px)'
     }}>
       <div style={{
-        maxWidth: '500px',
-        width: '100%',
-        padding: '2.5rem',
-        backgroundColor: '#fff',
-        borderRadius: '32px',
-        border: '1px solid #eee',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-        textAlign: 'center',
-        position: 'relative',
-        color: '#000'
+        maxWidth: '450px', width: '100%', padding: '2.5rem',
+        backgroundColor: '#fff', borderRadius: '32px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        position: 'relative', color: '#000'
       }}>
         <button 
           onClick={onCancel}
@@ -129,102 +179,179 @@ export default function ProfileSetup({
           <X size={24} />
         </button>
 
-      <h2 style={{ fontSize: '2.2rem', marginBottom: '0.5rem', letterSpacing: '-1px', fontWeight: 800 }}>Connect Profile</h2>
-      <p style={{ color: '#666', marginBottom: '2rem' }}>Login with your social accounts to RialoHub</p>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ textAlign: 'left' }}>
-          <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.6rem', fontSize: '0.9rem', color: '#000' }}>CHOOSE USERNAME</label>
-          <input 
-            type="text" 
-            placeholder="Username..." 
-            value={rialoUsername}
-            onChange={(e) => setRialoUsername(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              borderRadius: '14px',
-              border: `2px solid ${rialoUsername && !/^[a-zA-Z0-9_]+$/.test(rialoUsername) ? '#ff4d4f' : '#eee'}`,
-              outline: 'none',
-              fontSize: '1rem',
-              boxSizing: 'border-box'
-            }}
-          />
-          {rialoUsername && !/^[a-zA-Z0-9_]+$/.test(rialoUsername) && (
-            <div style={{ color: '#ff4d4f', fontSize: '0.75rem', marginTop: '0.4rem', fontWeight: 600 }}>
-              No spaces or special characters allowed (only A-Z, 0-9, _)
+        {mode === 'login' || mode === 'signup' ? (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ 
+                width: '60px', height: '60px', backgroundColor: 'var(--primary)', 
+                borderRadius: '18px', display: 'flex', alignItems: 'center', 
+                justifyContent: 'center', margin: '0 auto 1.5rem', color: 'white' 
+              }}>
+                <Lock size={28} />
+              </div>
+              <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem', letterSpacing: '-1px' }}>
+                {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+              </h2>
+              <p style={{ color: '#666' }}>{mode === 'login' ? 'Login to your RialoHub profile' : 'Join the RialoHub community'}</p>
             </div>
-          )}
-        </div>
 
-        <button 
-          onClick={handleTwitterConnect}
-          style={{
-            width: '100%',
-            padding: '1.2rem',
-            borderRadius: '16px',
-            border: `2px solid ${isTwitterConnected ? '#1DA1F2' : '#eee'}`,
-            backgroundColor: isTwitterConnected ? 'rgba(29, 161, 242, 0.05)' : '#fff',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer'
-          }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Twitter color="#1DA1F2" fill={isTwitterConnected ? "#1DA1F2" : "none"} />
-            <div style={{ fontWeight: 800, color: '#000' }}>
-              {isTwitterConnected ? `Connected as @${twitterHandle}` : 'Connect Twitter / X'}
+            <form onSubmit={mode === 'login' ? handleLogin : handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#333' }}>USERNAME</label>
+                <div style={{ position: 'relative' }}>
+                  <UserIcon size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    style={{
+                      width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '14px',
+                      border: '2px solid #eee', outline: 'none', fontSize: '1rem', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#333' }}>PASSWORD</label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+                  <input 
+                    type="password" 
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    style={{
+                      width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '14px',
+                      border: '2px solid #eee', outline: 'none', fontSize: '1rem', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {mode === 'signup' && (
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#333' }}>CONFIRM PASSWORD</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+                    <input 
+                      type="password" 
+                      required
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      style={{
+                        width: '100%', padding: '1rem 1rem 1rem 3rem', borderRadius: '14px',
+                        border: '2px solid #eee', outline: 'none', fontSize: '1rem', boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div style={{ color: '#ff4d4f', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                  <AlertCircle size={16} /> {error}
+                </div>
+              )}
+
+              <button 
+                type="submit"
+                disabled={!!loading}
+                style={{
+                  width: '100%', padding: '1.2rem', borderRadius: '16px',
+                  backgroundColor: '#000', color: 'white', fontWeight: 800,
+                  fontSize: '1rem', cursor: 'pointer', border: 'none', marginTop: '0.5rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                }}
+              >
+                {loading ? 'Processing...' : mode === 'login' ? 'Login' : 'Sign Up'}
+                {!loading && <ArrowRight size={20} />}
+              </button>
+            </form>
+
+            <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem', color: '#666' }}>
+              {mode === 'login' ? (
+                <>Don't have an account? <span onClick={() => { setMode('signup'); setError(null); }} style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>Sign Up</span></>
+              ) : (
+                <>Already have an account? <span onClick={() => { setMode('login'); setError(null); }} style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>Login</span></>
+              )}
             </div>
-          </div>
-          {isTwitterConnected && <CheckCircle2 color="#1DA1F2" />}
-        </button>
-
-        <button 
-          onClick={handleDiscordConnect}
-          style={{
-            width: '100%',
-            padding: '1.2rem',
-            borderRadius: '16px',
-            border: `2px solid ${isDiscordConnected ? '#5865F2' : '#eee'}`,
-            backgroundColor: isDiscordConnected ? 'rgba(88, 101, 242, 0.05)' : '#fff',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            cursor: 'pointer'
-          }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <MessageSquare color="#5865F2" fill={isDiscordConnected ? "#5865F2" : "none"} />
-            <div style={{ fontWeight: 800, color: '#000' }}>
-              {isDiscordConnected ? `Connected as ${discordHandle}` : 'Connect Discord'}
+          </>
+        ) : (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '0.5rem', letterSpacing: '-1px' }}>Connect Socials</h2>
+              <p style={{ color: '#666' }}>Almost there! Connect your accounts to participate</p>
             </div>
-          </div>
-          {isDiscordConnected && <CheckCircle2 color="#5865F2" />}
-        </button>
-      </div>
 
-      <button
-        disabled={!isFormValid || loading === 'submitting'}
-        onClick={handleEnter}
-        style={{
-          width: '100%',
-          marginTop: '2rem',
-          backgroundColor: isFormValid ? '#111' : '#ccc',
-          color: 'white',
-          padding: '1.1rem',
-          borderRadius: '14px',
-          fontWeight: 800,
-          fontSize: '1rem',
-          cursor: isFormValid ? 'pointer' : 'not-allowed',
-          border: 'none'
-        }}
-      >
-        {loading === 'submitting' ? 'Saving...' : isFormValid ? 'Save Changes' : 'Connect Accounts & Pick Username'}
-      </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+              <div style={{ textAlign: 'left' }}>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.5rem', color: '#333' }}>CHOOSE USERNAME</label>
+                <input 
+                  type="text" 
+                  placeholder="Username..." 
+                  value={rialoUsername}
+                  onChange={(e) => setRialoUsername(e.target.value)}
+                  style={{
+                    width: '100%', padding: '1rem', borderRadius: '14px',
+                    border: `2px solid ${rialoUsername && !/^[a-zA-Z0-9_]+$/.test(rialoUsername) ? '#ff4d4f' : '#eee'}`,
+                    outline: 'none', fontSize: '1rem', boxSizing: 'border-box'
+                  }}
+                />
+              </div>
 
-      <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#888' }}>
-        <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-        Real OAuth connection via NextAuth
-      </div>
+              {/* Commented out for initial testing of credentials auth
+              <button 
+                onClick={() => signIn('twitter')}
+                style={{
+                  width: '100%', padding: '1.2rem', borderRadius: '16px',
+                  border: `2px solid ${twitterHandle ? '#1DA1F2' : '#eee'}`,
+                  backgroundColor: twitterHandle ? 'rgba(29, 161, 242, 0.05)' : '#fff',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer'
+                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <Twitter color="#1DA1F2" fill={twitterHandle ? "#1DA1F2" : "none"} />
+                  <div style={{ fontWeight: 800 }}>{twitterHandle ? `@${twitterHandle}` : 'Connect Twitter / X'}</div>
+                </div>
+                {twitterHandle && <CheckCircle2 color="#1DA1F2" />}
+              </button>
+
+              <button 
+                onClick={() => signIn('discord')}
+                style={{
+                  width: '100%', padding: '1.2rem', borderRadius: '16px',
+                  border: `2px solid ${discordHandle ? '#5865F2' : '#eee'}`,
+                  backgroundColor: discordHandle ? 'rgba(88, 101, 242, 0.05)' : '#fff',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer'
+                }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <MessageSquare color="#5865F2" fill={discordHandle ? "#5865F2" : "none"} />
+                  <div style={{ fontWeight: 800 }}>{discordHandle ? discordHandle : 'Connect Discord'}</div>
+                </div>
+                {discordHandle && <CheckCircle2 color="#5865F2" />}
+              </button>
+              */}
+            </div>
+
+            <button
+              disabled={!isSetupValid || loading === 'saving'}
+              onClick={handleProfileSave}
+              style={{
+                width: '100%', marginTop: '2rem',
+                backgroundColor: isSetupValid ? '#000' : '#ccc',
+                color: 'white', padding: '1.2rem', borderRadius: '16px',
+                fontWeight: 800, fontSize: '1rem',
+                cursor: isSetupValid ? 'pointer' : 'not-allowed', border: 'none'
+              }}
+            >
+              {loading === 'saving' ? 'Saving...' : 'Finish Setup & Start Exploring'}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

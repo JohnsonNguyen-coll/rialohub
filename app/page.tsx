@@ -28,6 +28,13 @@ export default function Home() {
     setIsLoaded(true);
   }, [session, activeTab, viewMode]);
 
+  // Auto-open modal if user is logged in but profile is incomplete
+  useEffect(() => {
+    if (isLoaded && session?.user?.email && userProfile && !userProfile.username) {
+      setShowSubmitModal(true);
+    }
+  }, [isLoaded, session, userProfile]);
+
   const fetchProfile = async () => {
     const res = await fetch('/api/profile');
     if (res.ok) {
@@ -178,12 +185,14 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Project Grid */}
+        {/* Project List */}
         <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', 
-          gap: '2.5rem',
-          marginBottom: '5rem'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          marginBottom: '5rem',
+          maxWidth: '900px',
+          margin: '0 auto 5rem auto'
         }}>
           {filteredProjects.map((project, index) => (
             <ProjectCard 

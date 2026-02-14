@@ -32,12 +32,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
       const session = await getServerSession(authOptions);
-      if (!session?.user?.email) {
+      const userId = (session?.user as any)?.id;
+      if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
       const user = await prisma.user.findUnique({
-            where: { email: session.user.email }
+            where: { id: userId }
       });
 
       if (!user || !user.username) {
@@ -46,6 +47,20 @@ export async function POST(req: NextRequest) {
 
       const body = await req.json();
       const { name, description, link, category } = body;
+
+      // Check if user already has a project in this category
+      const existingProject = await prisma.project.findFirst({
+            where: {
+                  userId: user.id,
+                  category: category
+            }
+      });
+
+      if (existingProject) {
+            return NextResponse.json({
+                  error: `You already have a project in the ${category} category.`
+            }, { status: 400 });
+      }
 
       const project = await prisma.project.create({
             data: {

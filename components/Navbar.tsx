@@ -1,20 +1,31 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Layout, Users, Trophy, PlusCircle, Twitter, MessageSquare, LogIn } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import { Layout, Users, Trophy, PlusCircle, Twitter, MessageSquare, LogIn, LogOut } from 'lucide-react';
 
 export default function Navbar({ 
   activeTab, 
   setActiveTab, 
-  user, 
+  user: initialUser, 
   onConnect 
 }: { 
-  activeTab: string, 
-  setActiveTab: (tab: string) => void,
-  user: { username: string, twitter: string, discord: string } | null,
+  activeTab?: string, 
+  setActiveTab?: (tab: string) => void,
+  user: any | null,
   onConnect: () => void
 }) {
+  const { data: session } = useSession();
+  const [user, setUser] = useState<any>(initialUser);
+
+  useEffect(() => {
+    if (session && !user) {
+      fetch('/api/profile').then(res => res.json()).then(data => setUser(data));
+    }
+  }, [session, user]);
+
+  const displayUser = user || initialUser;
   return (
     <nav style={{ 
       padding: '1rem 0', 
@@ -27,63 +38,98 @@ export default function Navbar({
       marginBottom: '2rem'
     }}>
       <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link href="/" style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.5px' }}>
+        <Link href="/" style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.5px', textDecoration: 'none' }}>
           RIALO<span style={{ color: 'var(--accent)' }}>HUB</span>
         </Link>
         
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <button 
-            onClick={() => setActiveTab('builder')}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.5rem',
-              fontWeight: 600,
-              color: activeTab === 'builder' ? 'var(--accent)' : 'var(--foreground)',
-              borderBottom: activeTab === 'builder' ? '2px solid var(--accent)' : 'none',
-              padding: '0.4rem 0'
-            }}
-          >
-            <Users size={18} />
-            Builder Hub
-          </button>
-          <button 
-            onClick={() => setActiveTab('sharktank')}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.5rem',
-              fontWeight: 600,
-              color: activeTab === 'sharktank' ? 'var(--accent)' : 'var(--foreground)',
-              borderBottom: activeTab === 'sharktank' ? '2px solid var(--accent)' : 'none',
-              padding: '0.4rem 0'
-            }}
-          >
-            <Trophy size={18} />
-            Shark Tank
-          </button>
-        </div>
+        {setActiveTab && (
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+            <button 
+              onClick={() => setActiveTab('builder')}
+              style={{ 
+                background: 'none', border: 'none', cursor: 'pointer',
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                fontWeight: 600,
+                color: activeTab === 'builder' ? 'var(--accent)' : 'var(--foreground)',
+                borderBottom: activeTab === 'builder' ? '2px solid var(--accent)' : 'none',
+                padding: '0.4rem 0'
+              }}
+            >
+              <Users size={18} />
+              Builder Hub
+            </button>
+            <button 
+              onClick={() => setActiveTab('sharktank')}
+              style={{ 
+                background: 'none', border: 'none', cursor: 'pointer',
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                fontWeight: 600,
+                color: activeTab === 'sharktank' ? 'var(--accent)' : 'var(--foreground)',
+                borderBottom: activeTab === 'sharktank' ? '2px solid var(--accent)' : 'none',
+                padding: '0.4rem 0'
+              }}
+            >
+              <Trophy size={18} />
+              Shark Tank
+            </button>
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          {user ? (
+          {displayUser ? (
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              gap: '1.2rem', 
-              backgroundColor: 'white', 
-              padding: '0.5rem 1.2rem', 
-              borderRadius: '16px',
-              border: '1px solid var(--border)',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+              gap: '1.2rem'
             }}>
-              <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>
-                {user.username}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '1.2rem', 
+                backgroundColor: 'white', 
+                padding: '0.5rem 1.2rem', 
+                borderRadius: '16px',
+                border: '1px solid var(--border)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+              }}>
+                <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.95rem' }}>
+                  {displayUser.username}
+                </div>
+                <div style={{ width: '1px', height: '15px', backgroundColor: '#eee' }} />
+                <div style={{ display: 'flex', gap: '0.6rem' }}>
+                  <Twitter size={14} color="#1DA1F2" style={{ opacity: displayUser.twitterHandle ? 1 : 0.3 }} />
+                  <MessageSquare size={14} color="#5865F2" style={{ opacity: displayUser.discordHandle ? 1 : 0.3 }} />
+                </div>
               </div>
-              <div style={{ width: '1px', height: '15px', backgroundColor: '#eee' }} />
-              <div style={{ display: 'flex', gap: '0.6rem' }}>
-                <Twitter size={14} color="#1DA1F2" style={{ opacity: user.twitter ? 1 : 0.3 }} />
-                <MessageSquare size={14} color="#5865F2" style={{ opacity: user.discord ? 1 : 0.3 }} />
-              </div>
+
+              <button 
+                onClick={() => signOut()}
+                title="Log out"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.6rem',
+                  borderRadius: '12px',
+                  border: '1px solid #fee2e2',
+                  backgroundColor: '#fff1f1',
+                  color: '#ef4444',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#fecaca';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '#fff1f1';
+                }}
+              >
+                <LogOut size={18} />
+              </button>
             </div>
           ) : (
             <button 
@@ -96,7 +142,9 @@ export default function Navbar({
                 color: 'var(--primary)',
                 padding: '0.5rem 1rem',
                 borderRadius: '10px',
-                border: '1.5px solid var(--primary)'
+                border: '1.5px solid var(--primary)',
+                background: 'none',
+                cursor: 'pointer'
               }}
             >
               <LogIn size={18} />
