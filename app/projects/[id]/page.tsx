@@ -6,6 +6,122 @@ import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
 import { ThumbsUp, MessageSquare, ExternalLink, ArrowLeft, User, Calendar, Tag } from 'lucide-react';
 
+const FeedbackItem = ({ 
+  item, 
+  session, 
+  replyTo, 
+  setReplyTo, 
+  replyContent, 
+  setReplyContent, 
+  handleReply, 
+  submitting,
+  level = 0
+}: any) => {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginLeft: level > 0 ? '2rem' : '0' }}>
+      <div style={{ 
+        padding: '1.2rem', 
+        backgroundColor: level === 0 ? '#f9f9f9' : '#fff', 
+        borderRadius: '20px', 
+        border: '1px solid #eee',
+        boxShadow: level > 0 ? '0 2px 8px rgba(0,0,0,0.02)' : 'none'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+          <div style={{ fontWeight: 800, color: level === 0 ? 'var(--primary)' : 'var(--accent)', fontSize: '0.9rem' }}>
+            @{item.user.username}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
+            {new Date(item.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+        <div style={{ color: '#444', lineHeight: '1.6', fontSize: '0.95rem', marginBottom: '0.8rem' }}>
+          {item.content}
+        </div>
+        
+        <button 
+          onClick={() => {
+            if (!session) {
+              alert('Please login to reply');
+              return;
+            }
+            setReplyTo(replyTo === item.id ? null : item.id);
+          }}
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: 'var(--accent)', 
+            fontWeight: 700, 
+            fontSize: '0.8rem', 
+            cursor: 'pointer', 
+            padding: 0,
+            opacity: !session ? 0.5 : 1
+          }}
+        >
+          {replyTo === item.id ? 'Cancel' : 'Reply'}
+        </button>
+
+        {replyTo === item.id && (
+          <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <textarea 
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              placeholder={`Reply to @${item.user.username}...`}
+              style={{
+                width: '100%',
+                padding: '0.8rem',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                outline: 'none',
+                fontSize: '0.9rem',
+                minHeight: '80px',
+                resize: 'vertical'
+              }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => handleReply(item.id)}
+                disabled={submitting || !replyContent.trim()}
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  color: 'white',
+                  padding: '0.5rem 1.2rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Post Reply
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Recursive Replies */}
+      {item.replies && item.replies.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '2px solid #eee' }}>
+          {item.replies.map((reply: any) => (
+            <FeedbackItem 
+              key={reply.id} 
+              item={reply} 
+              session={session}
+              replyTo={replyTo}
+              setReplyTo={setReplyTo}
+              replyContent={replyContent}
+              setReplyContent={setReplyContent}
+              handleReply={handleReply}
+              submitting={submitting}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function ProjectDetail() {
   const params = useParams();
   const id = params.id as string;
@@ -36,10 +152,17 @@ export default function ProjectDetail() {
   };
 
   const fetchFeedback = async () => {
-    const res = await fetch(`/api/projects/${id}/feedback`);
-    if (res.ok) {
-      const data = await res.json();
-      setFeedbacks(data);
+    try {
+      const res = await fetch(`/api/projects/${id}/feedback`);
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Frontend fetched feedbacks:', data);
+        setFeedbacks(data);
+      } else {
+        console.error('Feedback fetch failed with status:', res.status);
+      }
+    } catch (err) {
+      console.error('Feedback fetch error:', err);
     }
   };
 
@@ -56,23 +179,65 @@ export default function ProjectDetail() {
     }
   };
 
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+
+  const handleReply = async (parentId: string) => {
+    if (!replyContent.trim() || !session || submitting) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: replyContent,
+          parentId
+        })
+      });
+
+      if (res.ok) {
+        setReplyContent('');
+        setReplyTo(null);
+        await fetchFeedback();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to post reply');
+      }
+    } catch (err) {
+      console.error('Reply error:', err);
+      alert('An error occurred while posting reply');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim() || !session || submitting) return;
 
     setSubmitting(true);
-    const res = await fetch(`/api/projects/${id}/feedback`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: comment })
-    });
+    try {
+      const res = await fetch(`/api/projects/${id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: comment })
+      });
 
-    if (res.ok) {
-      setComment('');
-      fetchFeedback();
-      fetchProject(); // Refresh counts
+      if (res.ok) {
+        setComment('');
+        await fetchFeedback();
+        await fetchProject(); // Refresh counts
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to post comment');
+      }
+    } catch (err) {
+      console.error('Comment error:', err);
+      alert('An error occurred while posting comment');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem' }}>Loading project...</div>;
@@ -199,15 +364,19 @@ export default function ProjectDetail() {
                 </div>
               </form>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 {feedbacks.map((item) => (
-                  <div key={item.id} style={{ padding: '1.5rem', backgroundColor: '#f9f9f9', borderRadius: '20px', border: '1px solid #eee' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.8rem' }}>
-                      <div style={{ fontWeight: 800, color: 'var(--primary)' }}>@{item.user.username}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#aaa' }}>{new Date(item.createdAt).toLocaleDateString()}</div>
-                    </div>
-                    <div style={{ color: '#444', lineHeight: '1.6' }}>{item.content}</div>
-                  </div>
+                  <FeedbackItem 
+                    key={item.id} 
+                    item={item} 
+                    session={session}
+                    replyTo={replyTo}
+                    setReplyTo={setReplyTo}
+                    replyContent={replyContent}
+                    setReplyContent={setReplyContent}
+                    handleReply={handleReply}
+                    submitting={submitting}
+                  />
                 ))}
                 {feedbacks.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '3rem', color: '#aaa', border: '2px dashed #eee', borderRadius: '24px' }}>

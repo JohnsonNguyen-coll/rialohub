@@ -8,61 +8,74 @@ export async function GET(
       req: NextRequest,
       { params }: { params: Promise<{ id: string }> }
 ) {
-      const { id: projectId } = await params;
+      try {
+            const { id: projectId } = await params;
 
-      const feedbacks = await (prisma.feedback as any).findMany({
-            where: {
-                  projectId: projectId,
-                  parentId: null
-            },
-            include: {
-                  user: {
-                        select: { username: true }
+            const allFeedbacks = await prisma.feedback.findMany({
+                  where: { projectId: projectId },
+                  include: {
+                        user: { select: { username: true } }
                   },
-                  replies: {
-                        include: {
-                              user: {
-                                    select: { username: true }
-                              }
-                        },
-                        orderBy: { createdAt: 'asc' }
-                  }
-            },
-            orderBy: { createdAt: 'desc' }
-      });
+                  orderBy: { createdAt: 'asc' }
+            });
 
-      return NextResponse.json(feedbacks);
+            // Helper to build tree recursively
+            const buildTree = (parentId: string | null = null): any[] => {
+                  return allFeedbacks
+                        .filter((f: any) => f.parentId === parentId)
+                        .map((f: any) => ({
+                              ...f,
+                              replies: buildTree(f.id)
+                        }));
+            };
+
+            const tree = buildTree(null);
+
+            // Sort top-level by newest first
+            tree.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            return NextResponse.json(tree);
+      } catch (error: any) {
+            console.error('Error fetching feedback:', error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+      }
 }
 
 export async function POST(
       req: NextRequest,
       { params }: { params: Promise<{ id: string }> }
 ) {
-      const { id: projectId } = await params;
-      const session = await getServerSession(authOptions);
-      const userId = (session?.user as any)?.id;
-      if (!userId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+      try {
+            const { id: projectId } = await params;
+            const session = await getServerSession(authOptions);
+            const userId = (session?.user as any)?.id;
 
-      const user = await prisma.user.findUnique({
-            where: { id: userId }
-      });
-
-      if (!user || (!user.username && !user.name)) {
-            return NextResponse.json({ error: 'Profile setup required' }, { status: 403 });
-      }
-
-      const { content, parentId } = await req.json();
-
-      const feedback = await (prisma.feedback as any).create({
-            data: {
-                  content,
-                  userId: user.id,
-                  projectId: projectId,
-                  parentId: parentId || null
+            if (!userId) {
+                  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
             }
-      });
 
-      return NextResponse.json(feedback);
+            const user = await prisma.user.findUnique({
+                  where: { id: userId }
+            });
+
+            if (!user || (!user.username && !user.name)) {
+                  return NextResponse.json({ error: 'Profile setup required' }, { status: 403 });
+            }
+
+            const { content, parentId } = await req.json();
+
+            const feedback = await prisma.feedback.create({
+                  data: {
+                        content,
+                        userId: user.id,
+                        projectId: projectId,
+                        parentId: parentId || null
+                  }
+            });
+
+            return NextResponse.json(feedback);
+      } catch (error: any) {
+            console.error('Error posting feedback:', error);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+      }
 }
