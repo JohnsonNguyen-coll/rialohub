@@ -555,7 +555,6 @@ export default function ProjectPage() {
         />
       ) : showEntryModal ? (
         <ProfileSetup 
-          currentProfile={userProfile}
           onComplete={(u) => { setUserProfile(u); setShowEntryModal(true); }}
           onCancel={() => setShowEntryModal(false)}
         />
@@ -563,7 +562,6 @@ export default function ProjectPage() {
 
       {showAuthModal && (
         <ProfileSetup 
-          currentProfile={userProfile} 
           onComplete={(u) => { 
             setUserProfile(u); 
             setShowAuthModal(false); 

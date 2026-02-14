@@ -353,10 +353,12 @@ function HomeContent() {
           />
         ) : (
           <ProfileSetup 
-            currentProfile={userProfile}
-            onComplete={handleProfileComplete} 
-            onCancel={() => setShowSubmitModal(false)}
-          />
+                  onComplete={(updatedUser: any) => {
+                    setUserProfile(updatedUser);
+                    setShowSubmitModal(false);
+                  }}
+                  onCancel={() => setShowSubmitModal(false)}
+                />
         )
       )}
     </main>
