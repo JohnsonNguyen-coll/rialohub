@@ -11,7 +11,7 @@ export async function GET(
       try {
             const { id: projectId } = await params;
 
-            const allFeedbacks = await prisma.feedback.findMany({
+            const allFeedbacks = await (prisma.feedback as any).findMany({
                   where: { projectId: projectId },
                   include: {
                         user: { select: { username: true } }
@@ -54,7 +54,7 @@ export async function POST(
                   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
             }
 
-            const user = await prisma.user.findUnique({
+            const user = await (prisma.user as any).findUnique({
                   where: { id: userId }
             });
 
@@ -64,7 +64,7 @@ export async function POST(
 
             const { content, parentId } = await req.json();
 
-            const feedback = await prisma.feedback.create({
+            const feedback = await (prisma.feedback as any).create({
                   data: {
                         content,
                         userId: user.id,
@@ -72,6 +72,37 @@ export async function POST(
                         parentId: parentId || null
                   }
             });
+
+            // Create notification
+            try {
+                  const project = await (prisma.project as any).findUnique({ where: { id: projectId } });
+                  if (project) {
+                        if (parentId) {
+                              const parentComment = await (prisma.feedback as any).findUnique({ where: { id: parentId } });
+                              if (parentComment && parentComment.userId !== user.id) {
+                                    await (prisma as any).notification.create({
+                                          data: {
+                                                userId: parentComment.userId,
+                                                fromId: user.id,
+                                                projectId: projectId,
+                                                type: 'reply'
+                                          }
+                                    });
+                              }
+                        } else if (project.userId !== user.id) {
+                              await (prisma as any).notification.create({
+                                    data: {
+                                          userId: project.userId,
+                                          fromId: user.id,
+                                          projectId: projectId,
+                                          type: 'comment'
+                                    }
+                              });
+                        }
+                  }
+            } catch (err) {
+                  console.error('Notification creation error:', err);
+            }
 
             return NextResponse.json(feedback);
       } catch (error: any) {

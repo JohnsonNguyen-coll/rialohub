@@ -51,6 +51,8 @@ model User {
   projects      Project[]
   sessions      Session[]
   votes         Vote[]
+  notifications Notification[] @relation("UserNotifications")
+  initiatedNotifications Notification[] @relation("FromUserNotifications")
 }
 
 model VerificationToken {
@@ -78,6 +80,7 @@ model Project {
   votes       Vote[]
   event       Project?   @relation("EventEntries", fields: [eventId], references: [id])
   entries     Project[]  @relation("EventEntries")
+  notifications Notification[]
 }
 
 model Vote {
@@ -102,4 +105,18 @@ model Feedback {
   replies   Feedback[] @relation("FeedbackToFeedback")
   project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String   // Target user (the one being notified)
+  fromId      String   // Source user (the one who commented/voted)
+  projectId   String?  // Related project
+  type        String   // 'vote', 'comment', 'reply'
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  from        User     @relation("FromUserNotifications", fields: [fromId], references: [id], onDelete: Cascade)
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }

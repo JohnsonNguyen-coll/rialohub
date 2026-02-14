@@ -16,14 +16,14 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      const user = await prisma.user.findUnique({
+      const user = await (prisma.user as any).findUnique({
             where: { id: userId }
       });
 
       if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
       // Check if already voted
-      const existingVote = await prisma.vote.findUnique({
+      const existingVote = await (prisma.vote as any).findUnique({
             where: {
                   userId_projectId: {
                         userId: user.id,
@@ -34,18 +34,36 @@ export async function POST(
 
       if (existingVote) {
             // Toggle vote: Remove if exists
-            await prisma.vote.delete({
+            await (prisma.vote as any).delete({
                   where: { id: existingVote.id }
             });
             return NextResponse.json({ voted: false });
       } else {
             // Add vote
-            await prisma.vote.create({
+            await (prisma.vote as any).create({
                   data: {
                         userId: user.id,
                         projectId: projectId
                   }
             });
+
+            // Create notification for project owner
+            try {
+                  const project = await (prisma.project as any).findUnique({ where: { id: projectId } });
+                  if (project && project.userId !== user.id) {
+                        await (prisma as any).notification.create({
+                              data: {
+                                    userId: project.userId,
+                                    fromId: user.id,
+                                    projectId: projectId,
+                                    type: 'vote'
+                              }
+                        });
+                  }
+            } catch (err) {
+                  console.error('Notification creation error:', err);
+            }
+
             return NextResponse.json({ voted: true });
       }
 }
