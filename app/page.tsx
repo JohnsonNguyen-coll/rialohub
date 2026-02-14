@@ -24,7 +24,9 @@ import {
   Award
 } from 'lucide-react';
 
-export default function Home() {
+import { Suspense } from 'react';
+
+function HomeContent() {
   const { data: session }: any = useSession();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('builder');
@@ -358,5 +360,17 @@ export default function Home() {
         )
       )}
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--background)' }}>
+         <div style={{ width: '40px', height: '40px', border: '3px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
