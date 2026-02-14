@@ -61,18 +61,16 @@ export default function Navbar({ activeTab, setActiveTab, user, onConnect }: {
       <nav className="navbar" style={{ position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
-            <Link href="/" onClick={() => setActiveTab?.('builder')} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
-              <div style={{ padding: '0.6rem', background: 'var(--primary)', borderRadius: '12px', color: 'white' }}>
-                <ThumbsUp size={24} fill="currentColor" />
-              </div>
-              <span style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-1px', color: 'var(--foreground)' }}>RialoHub</span>
+            <Link href="/" onClick={() => setActiveTab?.('builder')} style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}>
+              <img src="/assets/logo.png" alt="RialoHub" style={{ height: '32px', width: 'auto' }} />
+              <span style={{ fontSize: '1.4rem', fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--foreground)' }}>RialoHub</span>
             </Link>
 
             {setActiveTab && (
                <div style={{ display: 'flex', gap: '2rem' }}>
-                  <button onClick={() => setActiveTab('builder')} style={{ border: 'none', background: 'none', color: activeTab === 'builder' ? 'var(--foreground)' : 'var(--muted)', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', opacity: activeTab === 'builder' ? 1 : 0.6 }}>Builders</button>
-                  <button onClick={() => setActiveTab('sharktank')} style={{ border: 'none', background: 'none', color: activeTab === 'sharktank' ? 'var(--foreground)' : 'var(--muted)', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', opacity: activeTab === 'sharktank' ? 1 : 0.6 }}>Shark Tank</button>
-                  <button onClick={() => setActiveTab('top')} style={{ border: 'none', background: 'none', color: activeTab === 'top' ? 'var(--foreground)' : 'var(--muted)', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', opacity: activeTab === 'top' ? 1 : 0.6 }}>Top Leaders</button>
+                  <button onClick={() => setActiveTab('builder')} style={{ border: 'none', background: 'none', color: activeTab === 'builder' ? 'var(--foreground)' : 'var(--muted)', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', opacity: activeTab === 'builder' ? 1 : 0.6 }}>Builders</button>
+                  <button onClick={() => setActiveTab('sharktank')} style={{ border: 'none', background: 'none', color: activeTab === 'sharktank' ? 'var(--foreground)' : 'var(--muted)', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', opacity: activeTab === 'sharktank' ? 1 : 0.6 }}>Shark Tank</button>
+                  <button onClick={() => setActiveTab('top')} style={{ border: 'none', background: 'none', color: activeTab === 'top' ? 'var(--foreground)' : 'var(--muted)', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer', opacity: activeTab === 'top' ? 1 : 0.6 }}>Top Leaders</button>
                </div>
             )}
           </div>
@@ -96,7 +94,7 @@ export default function Navbar({ activeTab, setActiveTab, user, onConnect }: {
                  </div>
                  <div style={{ height: '24px', width: '1px', backgroundColor: 'var(--border)' }} />
                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <button onClick={() => setShowProfileModal(true)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem', color: 'var(--foreground)' }}>
+                  <button onClick={() => setShowProfileModal(true)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: '0.85rem', color: 'var(--foreground)' }}>
                     {(displayUser.username || displayUser.name || 'U').substring(0, 1).toUpperCase()}
                   </button>
                   <button onClick={() => signOut()} style={{ padding: '0.4rem', border: 'none', background: 'none', color: 'var(--muted)', cursor: 'pointer' }} title="Logout"><LogOut size={20} /></button>

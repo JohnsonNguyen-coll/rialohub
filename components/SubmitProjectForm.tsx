@@ -41,7 +41,8 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
 
       if (res.ok) {
         const { url } = await res.json();
-        execCommand('insertImage', url);
+        const img = `<img src="${url}" style="max-width: 100%; border-radius: 8px; margin: 1rem 0;" />`;
+        execCommand('insertHTML', img);
       }
     } catch (err) {
       console.error('Upload error:', err);
@@ -103,7 +104,7 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div>
-            <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem', fontSize: '0.8rem', textTransform: 'uppercase' }}>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--secondary)' }}>
               {initialIsEvent ? 'Event Title' : 'Project Title'}
             </label>
             <input 
@@ -122,7 +123,7 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
 
           {!initialIsEvent && (
             <div>
-              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem', fontSize: '0.8rem', textTransform: 'uppercase' }}>Link</label>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--secondary)' }}>Link</label>
               <input 
                 required
                 type="url" 
@@ -139,7 +140,7 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
           )}
 
           <div>
-            <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.5rem', fontSize: '0.8rem', textTransform: 'uppercase' }}>Content</label>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--secondary)' }}>Content</label>
             <div style={{
               border: '1px solid var(--border)',
               borderRadius: '8px',

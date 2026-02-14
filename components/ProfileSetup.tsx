@@ -40,7 +40,9 @@ export default function AuthAndProfile({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: rialoUsername })
       });
-      if (res.ok) { /* useEffect will handle transition to missing connections */ }
+      if (res.ok) { 
+        window.location.reload();
+      }
       else {
         const data = await res.json();
         setError(data.error);
@@ -70,7 +72,7 @@ export default function AuthAndProfile({
         <button onClick={onCancel} style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
         
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.5rem', letterSpacing: '-1px' }}>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: '-0.5px' }}>
             {mode === 'social_login' ? 'Join RialoHub' : mode === 'setup' ? 'Identity Setup' : mode === 'connections' ? 'Verify Humanity' : 'Sign In'}
           </h2>
           <p style={{ color: 'var(--secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
