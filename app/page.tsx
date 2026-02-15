@@ -245,9 +245,17 @@ function HomeContent() {
                   }}
                 />
              </div>
-             <button onClick={() => { setAuthMode('submit'); setShowSubmitModal(true); }} className="btn-primary" style={{ padding: '0 2rem' }}>
-                <PlusCircle size={18} /> Create Post
-             </button>
+             {activeTab === 'sharktank' ? (
+               isAdmin && (
+                 <button onClick={() => { setAuthMode('submit'); setShowSubmitModal(true); }} className="btn-primary" style={{ padding: '0 2rem' }}>
+                    <PlusCircle size={18} /> Create Event
+                 </button>
+               )
+             ) : (
+               <button onClick={() => { setAuthMode('submit'); setShowSubmitModal(true); }} className="btn-primary" style={{ padding: '0 2rem' }}>
+                  <PlusCircle size={18} /> Create Post
+               </button>
+             )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
