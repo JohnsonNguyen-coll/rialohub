@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { ThumbsUp, MessageSquare, ExternalLink, ArrowLeft, User, Calendar, Tag, Send, PlusCircle, Trophy, Zap, Clock, Share2, Sparkles } from 'lucide-react';
+import { ThumbsUp, MessageSquare, ExternalLink, ArrowLeft, User, Calendar, Tag, Send, PlusCircle, Trophy, Zap, Clock, Share2, Sparkles, Trash2 } from 'lucide-react';
 import ProjectCard from '@/components/ProjectCard';
 import SubmitProjectForm from '@/components/SubmitProjectForm';
 import ProfileSetup from '@/components/ProfileSetup';
@@ -298,7 +298,13 @@ export default function ProjectPage() {
       }}>
          <div className="container" style={{ position: 'relative', zIndex: 10 }}>
             <button 
-              onClick={() => router.push(project.isEvent ? '/?tab=sharktank' : '/')}
+              onClick={() => {
+                if (project.eventId) {
+                  router.push(`/projects/${project.eventId}`);
+                } else {
+                  router.push(project.isEvent ? '/?tab=sharktank' : '/');
+                }
+              }}
               style={{ 
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem', 
                 color: project.isEvent ? 'rgba(255,255,255,0.6)' : 'var(--secondary)', 
@@ -308,7 +314,7 @@ export default function ProjectPage() {
                 boxShadow: project.isEvent ? 'none' : 'var(--shadow-sm)'
               }}
             >
-              <ArrowLeft size={16} /> Back to Discover
+              <ArrowLeft size={16} /> {project.eventId ? 'Back to Arena' : 'Back to Discover'}
             </button>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '3rem', flexWrap: 'wrap' }}>
@@ -340,16 +346,30 @@ export default function ProjectPage() {
                   </div>
                </div>
 
-               <div style={{ display: 'flex', gap: '1rem' }}>
-                  {project.link !== '#' && (
-                     <a href={project.link} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ padding: '1rem 2rem', fontSize: '1rem', background: project.isEvent ? 'white' : 'var(--primary)', color: project.isEvent ? 'black' : 'white' }}>
-                        Live Demo <ExternalLink size={18} />
-                     </a>
-                  )}
-                  <button className="btn-black" style={{ background: project.isEvent ? 'rgba(255,255,255,0.1)' : 'var(--foreground)', color: 'white', border: 'none', padding: '1rem' }}>
-                     <Share2 size={18} />
-                  </button>
-               </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                     {project.link !== '#' && (
+                        <a href={project.link} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ padding: '1rem 2rem', fontSize: '1rem', background: project.isEvent ? 'white' : 'var(--primary)', color: project.isEvent ? 'black' : 'white' }}>
+                           Live Demo <ExternalLink size={18} />
+                        </a>
+                     )}
+                     <button className="btn-black" style={{ background: project.isEvent ? 'rgba(255,255,255,0.1)' : 'var(--foreground)', color: 'white', border: 'none', padding: '1rem' }}>
+                        <Share2 size={18} />
+                     </button>
+                     {isAdmin && (
+                        <button 
+                          onClick={async () => {
+                            if (confirm('Delete this project?')) {
+                              const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+                              if (res.ok) router.push('/');
+                            }
+                          }}
+                          className="btn-black" 
+                          style={{ background: '#ef4444', color: 'white', border: 'none', padding: '1rem' }}
+                        >
+                           <Trash2 size={18} />
+                        </button>
+                     )}
+                  </div>
             </div>
          </div>
          {/* Abstract BG Decor */}
@@ -357,7 +377,7 @@ export default function ProjectPage() {
       </div>
 
       <div className="container" style={{ marginTop: '-6rem', paddingBottom: '8rem', position: 'relative', zIndex: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: project.isEvent ? '1fr' : 'minmax(0, 1fr) 360px', gap: '3rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: '3rem', alignItems: 'start' }}>
           
           {/* Main Card */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
@@ -491,60 +511,58 @@ export default function ProjectPage() {
           </div>
 
           {/* Sidebar - Visual Richness */}
-          {!project.isEvent && (
-            <aside style={{ position: 'sticky', top: '8rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div className="premium-card" style={{ padding: '3rem', textAlign: 'center', background: 'linear-gradient(to bottom, #ffffff, #f8fafc)' }}>
-                <div style={{ fontSize: '4.5rem', fontWeight: 800, color: 'var(--foreground)', marginBottom: '0.5rem', letterSpacing: '-4px' }}>
-                  {project._count?.votes || 0}
-                </div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '2.5rem', letterSpacing: '2px' }}>
-                   UPVOTES
-                </div>
-                <button 
-                  onClick={handleVote}
-                  className="btn-primary"
-                  style={{
-                    width: '100%',
-                    padding: '1.25rem',
-                    background: voted ? 'white' : 'var(--primary)',
-                    color: voted ? 'var(--primary)' : 'white',
-                    border: voted ? '2px solid var(--primary)' : 'none',
-                    fontSize: '1.1rem'
-                  }}
-                >
-                  <ThumbsUp size={22} fill={voted ? 'var(--primary)' : 'none'} />
-                  {voted ? 'Upvoted' : 'Upvote Project'}
-                </button>
+          <aside style={{ position: 'sticky', top: '8rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div className="premium-card" style={{ padding: '3rem', textAlign: 'center', background: 'linear-gradient(to bottom, #ffffff, #f8fafc)' }}>
+              <div style={{ fontSize: '4.5rem', fontWeight: 800, color: 'var(--foreground)', marginBottom: '0.5rem', letterSpacing: '-4px' }}>
+                {project._count?.votes || 0}
               </div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '2.5rem', letterSpacing: '2px' }}>
+                  UPVOTES
+              </div>
+              <button 
+                onClick={handleVote}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '1.25rem',
+                  background: voted ? 'white' : 'var(--primary)',
+                  color: voted ? 'var(--primary)' : 'white',
+                  border: voted ? '2px solid var(--primary)' : 'none',
+                  fontSize: '1.1rem'
+                }}
+              >
+                <ThumbsUp size={22} fill={voted ? 'var(--primary)' : 'none'} />
+                {voted ? 'Upvoted' : project.isEvent ? 'Support Arena' : 'Upvote Project'}
+              </button>
+            </div>
 
-              <div className="premium-card" style={{ padding: '2.5rem', backgroundColor: 'var(--foreground)', color: 'white', border: 'none', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'relative', zIndex: 2 }}>
-                  <h5 style={{ fontWeight: 800, fontSize: '0.75rem', marginBottom: '2rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '2px' }}>The Innovator</h5>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.5rem' }}>
-                    <div style={{ width: '56px', height: '56px', borderRadius: '18px', backgroundColor: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <User size={24} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>@{project.user?.username}</div>
-                      <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>Top Builder Node</div>
-                    </div>
+            <div className="premium-card" style={{ padding: '2.5rem', backgroundColor: 'var(--foreground)', color: 'white', border: 'none', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', zIndex: 2 }}>
+                <h5 style={{ fontWeight: 800, fontSize: '0.75rem', marginBottom: '2rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '2px' }}>{project.isEvent ? 'Host' : 'The Innovator'}</h5>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '2.5rem' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '18px', backgroundColor: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <User size={24} />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '100%', fontSize: '0.85rem' }}>
-                       View Work History
-                    </button>
-                    {project.user?.twitterHandle && (
-                      <a href={`https://twitter.com/${project.user.twitterHandle}`} target="_blank" rel="noopener noreferrer" style={{ textAlign: 'center', color: '#60a5fa', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>
-                         Twitter @{project.user.twitterHandle}
-                      </a>
-                    )}
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>@{project.user?.username}</div>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{project.isEvent ? 'Arena Manager' : 'Top Builder Node'}</div>
                   </div>
                 </div>
-                {/* Visual Accent */}
-                <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.3 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '100%', fontSize: '0.85rem' }}>
+                      {project.isEvent ? 'View Arena Rules' : 'View Work History'}
+                  </button>
+                  {project.user?.twitterHandle && (
+                    <a href={`https://twitter.com/${project.user.twitterHandle}`} target="_blank" rel="noopener noreferrer" style={{ textAlign: 'center', color: '#60a5fa', textDecoration: 'none', fontWeight: 800, fontSize: '0.85rem' }}>
+                        Twitter @{project.user.twitterHandle}
+                    </a>
+                  )}
+                </div>
               </div>
-            </aside>
-          )}
+              {/* Visual Accent */}
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'var(--primary)', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.3 }} />
+            </div>
+          </aside>
         </div>
       </div>
 
