@@ -37,6 +37,8 @@ function HomeContent() {
   const [authMode, setAuthMode] = useState<'signin' | 'submit'>('submit');
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingProject, setEditingProject] = useState<any>(null);
+
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -115,13 +117,18 @@ function HomeContent() {
   };
 
   const handleSubmitProject = async (data: any) => {
-    const res = await fetch('/api/projects', {
-      method: 'POST',
+    const isEditing = !!editingProject;
+    const url = isEditing ? `/api/projects/${editingProject.id}` : '/api/projects';
+    const method = isEditing ? 'PUT' : 'POST';
+
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     if (res.ok) {
       setShowSubmitModal(false);
+      setEditingProject(null);
       fetchProjects();
     }
   };
@@ -137,6 +144,8 @@ function HomeContent() {
   if (!isLoaded) return null;
 
   const isAdmin = userProfile?.role === 'admin' || session?.user?.role === 'admin';
+  const currentUserId = userProfile?.id || session?.user?.id;
+
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
@@ -268,6 +277,8 @@ function HomeContent() {
                       onVote={() => handleVote(project.id)}
                       rank={index}
                       isAdmin={isAdmin}
+                      currentUserId={currentUserId}
+                      onEdit={(p) => { setEditingProject(p); setAuthMode('submit'); setShowSubmitModal(true); }}
                       onRefresh={fetchProjects}
                       onViewFeedback={() => {}}
                       activeTab={activeTab}
@@ -353,11 +364,12 @@ function HomeContent() {
          (userProfile?.discordId || session?.user?.discordId)) ? (
           <SubmitProjectForm 
             user={userProfile || session?.user}
-            onCancel={() => setShowSubmitModal(false)}
+            onCancel={() => { setShowSubmitModal(false); setEditingProject(null); }}
             onSubmit={handleSubmitProject}
-            title={(activeTab === 'sharktank' && isAdmin) ? 'Create Event' : 'New Submission'}
-            initialCategory={activeTab === 'sharktank' ? 'sharktank' : 'builder'}
-            initialIsEvent={(activeTab === 'sharktank' && isAdmin)}
+            title={editingProject ? 'Edit Submission' : ((activeTab === 'sharktank' && isAdmin) ? 'Create Event' : 'New Submission')}
+            initialCategory={editingProject ? editingProject.category : (activeTab === 'sharktank' ? 'sharktank' : 'builder')}
+            initialIsEvent={editingProject ? editingProject.isEvent : (activeTab === 'sharktank' && isAdmin)}
+            initialData={editingProject}
           />
         ) : (
           <ProfileSetup 

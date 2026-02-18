@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { MessageSquare, ChevronUp, ExternalLink, Star, MoreVertical, Trash2 } from 'lucide-react';
+import { MessageSquare, ChevronUp, ExternalLink, Star, MoreVertical, Trash2, Edit } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ProjectCard({ 
   project, 
@@ -10,7 +11,9 @@ export default function ProjectCard({
   onVote, 
   isAdmin, 
   onRefresh,
-  activeTab
+  activeTab,
+  currentUserId,
+  onEdit
 }: { 
   project: any, 
   rank: number, 
@@ -18,22 +21,35 @@ export default function ProjectCard({
   isAdmin?: boolean,
   onRefresh?: () => void,
   onViewFeedback: () => void,
-  activeTab?: string
+  activeTab?: string,
+  currentUserId?: string,
+  onEdit?: (project: any) => void
 }) {
   const [showMenu, setShowMenu] = React.useState(false);
+  const isOwner = currentUserId === project.userId;
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this project?')) return;
     
-    const res = await fetch(`/api/projects/${project.id}`, {
-      method: 'DELETE'
+    toast.error('Are you sure you want to delete this project?', {
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          const res = await fetch(`/api/projects/${project.id}`, {
+            method: 'DELETE'
+          });
+          
+          if (res.ok) {
+            toast.success('Project deleted');
+            if (onRefresh) onRefresh();
+            setShowMenu(false);
+          } else {
+            toast.error('Failed to delete project');
+          }
+        }
+      },
+      duration: 5000,
     });
-    
-    if (res.ok) {
-      if (onRefresh) onRefresh();
-      setShowMenu(false);
-    }
   };
 
   const handlePin = async (e: React.MouseEvent) => {
@@ -171,42 +187,46 @@ export default function ProjectCard({
       </div>
 
       {/* Administrative Focus */}
-      {isAdmin && (
+      {(isAdmin || isOwner) && (
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <button 
-              onClick={handlePin}
-              style={{ 
-                fontSize: '0.75rem', 
-                fontWeight: 700, 
-                padding: '0.4rem 0.75rem', 
-                border: '1px solid var(--border)', 
-                borderRadius: '8px',
-                color: 'var(--secondary)',
-                backgroundColor: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              {project.isPinned ? 'Unpin' : 'Pin'}
-            </button>
-            <button 
-              onClick={handleTop}
-              style={{ 
-                fontSize: '0.75rem', 
-                fontWeight: 700, 
-                padding: '0.4rem 0.75rem', 
-                border: project.isTop ? '1px solid var(--primary)' : '1px solid var(--border)', 
-                borderRadius: '8px',
-                color: project.isTop ? 'var(--primary)' : 'var(--secondary)',
-                backgroundColor: project.isTop ? '#eef2ff' : 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Star size={12} fill={project.isTop ? 'var(--primary)' : 'none'} />
-              {project.isTop ? 'Starred' : 'Star'}
-            </button>
+            {isAdmin && (
+              <>
+                <button 
+                  onClick={handlePin}
+                  style={{ 
+                    fontSize: '0.75rem', 
+                    fontWeight: 700, 
+                    padding: '0.4rem 0.75rem', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '8px',
+                    color: 'var(--secondary)',
+                    backgroundColor: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {project.isPinned ? 'Unpin' : 'Pin'}
+                </button>
+                <button 
+                  onClick={handleTop}
+                  style={{ 
+                    fontSize: '0.75rem', 
+                    fontWeight: 700, 
+                    padding: '0.4rem 0.75rem', 
+                    border: project.isTop ? '1px solid var(--primary)' : '1px solid var(--border)', 
+                    borderRadius: '8px',
+                    color: project.isTop ? 'var(--primary)' : 'var(--secondary)',
+                    backgroundColor: project.isTop ? '#eef2ff' : 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Star size={12} fill={project.isTop ? 'var(--primary)' : 'none'} />
+                  {project.isTop ? 'Starred' : 'Star'}
+                </button>
+              </>
+            )}
 
             {/* 3 Dots Menu */}
             <div style={{ position: 'relative' }}>
@@ -240,6 +260,30 @@ export default function ProjectCard({
                   minWidth: '160px',
                   overflow: 'hidden'
                 }}>
+                  {onEdit && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onEdit(project); setShowMenu(false); }}
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75rem 1rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem', 
+                        color: 'var(--secondary)', 
+                        fontSize: '0.85rem', 
+                        fontWeight: 700, 
+                        border: 'none', 
+                        background: 'none', 
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        borderBottom: '1px solid var(--border)'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--surface)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <Edit size={16} /> Edit Project
+                    </button>
+                  )}
                   <button 
                     onClick={handleDelete}
                     style={{ 

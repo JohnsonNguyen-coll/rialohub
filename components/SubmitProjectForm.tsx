@@ -3,23 +3,30 @@
 import React, { useState, useRef } from 'react';
 import { Bold, Italic, Link as LinkIcon, Image as ImageIcon, Send, X } from 'lucide-react';
 
-export default function SubmitProjectForm({ onSubmit, onCancel, user, title, initialCategory, initialIsEvent }: { 
+export default function SubmitProjectForm({ onSubmit, onCancel, user, title, initialCategory, initialIsEvent, initialData }: { 
   onSubmit: (data: any) => void, 
   onCancel: () => void,
   user: any,
   title?: string,
   initialCategory?: 'builder' | 'sharktank',
-  initialIsEvent?: boolean
+  initialIsEvent?: boolean,
+  initialData?: any
 }) {
-  const [name, setName] = useState('');
-  const [link, setLink] = useState('');
-  const [category, setCategory] = useState<'builder' | 'sharktank'>(initialCategory || 'builder');
-  const [isPinned, setIsPinned] = useState(false);
-  const [isEvent, setIsEvent] = useState(initialIsEvent || false);
+  const [name, setName] = useState(initialData?.name || '');
+  const [link, setLink] = useState(initialData?.link || '');
+  const [category, setCategory] = useState<'builder' | 'sharktank'>(initialData?.category || initialCategory || 'builder');
+  const [isPinned, setIsPinned] = useState(initialData?.isPinned || false);
+  const [isEvent, setIsEvent] = useState(initialData?.isEvent || initialIsEvent || false);
   const isAdmin = user?.role === 'admin' || (user as any)?.role === 'admin';
 
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (initialData?.description && editorRef.current) {
+      editorRef.current.innerHTML = initialData.description;
+    }
+  }, [initialData]);
 
   const execCommand = (command: string, value: string = '') => {
     document.execCommand(command, false, value);

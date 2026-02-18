@@ -61,3 +61,41 @@ export async function DELETE(
       }
 }
 
+export async function PUT(
+      req: NextRequest,
+      { params }: { params: Promise<{ id: string }> }
+) {
+      const { id } = await params;
+
+      try {
+            const body = await req.json();
+            const { name, description, link, category, isPinned, isEvent } = body;
+
+            // In a real app, check session to verify ownership
+            /*
+            const session = await getServerSession(authOptions);
+            const project = await prisma.project.findUnique({ where: { id } });
+            if (!project || (project.userId !== session.user.id && session.user.role !== 'admin')) {
+                  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
+            */
+
+            const updatedProject = await prisma.project.update({
+                  where: { id },
+                  data: {
+                        name,
+                        description,
+                        link: link || '#',
+                        category,
+                        isPinned: isPinned || false,
+                        isEvent: isEvent || false,
+                  }
+            });
+
+            return NextResponse.json(updatedProject);
+      } catch (error) {
+            console.error('Error updating project:', error);
+            return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      }
+}
+

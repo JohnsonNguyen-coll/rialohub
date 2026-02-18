@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Navbar from '@/components/Navbar';
-import { ThumbsUp, MessageSquare, ExternalLink, ArrowLeft, User, Calendar, Tag, Send, PlusCircle, Trophy, Zap, Clock, Share2, Sparkles, Trash2 } from 'lucide-react';
+import { ThumbsUp, MessageSquare, ExternalLink, ArrowLeft, User, Calendar, Tag, Send, PlusCircle, Trophy, Zap, Clock, Share2, Sparkles, Trash2, Edit } from 'lucide-react';
 import ProjectCard from '@/components/ProjectCard';
 import SubmitProjectForm from '@/components/SubmitProjectForm';
 import ProfileSetup from '@/components/ProfileSetup';
@@ -130,6 +130,8 @@ export default function ProjectPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'submit'>('signin');
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
 
   useEffect(() => {
     if (id) {
@@ -283,6 +285,44 @@ export default function ProjectPage() {
   if (!project) return <div style={{ display: 'flex', justifyContent: 'center', padding: '10rem', fontWeight: 700 }}>Project not found</div>;
 
   const isAdmin = userProfile?.role === 'admin' || session?.user?.role === 'admin';
+  const currentUserId = userProfile?.id || session?.user?.id;
+  const isOwner = project?.userId === currentUserId;
+
+  const handleEditSubmit = async (data: any) => {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+
+    if (res.ok) {
+      toast.success('Project updated successfully!');
+      setShowEditModal(false);
+      fetchProject();
+    } else {
+      const err = await res.json();
+      toast.error(err.error || 'Failed to update project');
+    }
+  };
+
+  const handleDelete = async () => {
+    toast.error('Are you sure you want to delete this project?', {
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            toast.success('Project deleted');
+            router.push('/');
+          } else {
+            toast.error('Failed to delete project');
+          }
+        }
+      },
+      duration: 5000,
+    });
+  };
+
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: 'var(--background)' }}>
@@ -355,20 +395,25 @@ export default function ProjectPage() {
                      <button className="btn-black" style={{ background: project.isEvent ? 'rgba(255,255,255,0.1)' : 'var(--foreground)', color: 'white', border: 'none', padding: '1rem' }}>
                         <Share2 size={18} />
                      </button>
-                     {isAdmin && (
-                        <button 
-                          onClick={async () => {
-                            if (confirm('Delete this project?')) {
-                              const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
-                              if (res.ok) router.push('/');
-                            }
-                          }}
-                          className="btn-black" 
-                          style={{ background: '#ef4444', color: 'white', border: 'none', padding: '1rem' }}
-                        >
-                           <Trash2 size={18} />
-                        </button>
+                     {(isAdmin || isOwner) && (
+                        <>
+                          <button 
+                            onClick={() => setShowEditModal(true)}
+                            className="btn-black" 
+                            style={{ background: 'var(--foreground)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', padding: '1rem' }}
+                          >
+                             <Edit size={18} />
+                          </button>
+                          <button 
+                            onClick={handleDelete}
+                            className="btn-black" 
+                            style={{ background: '#ef4444', color: 'white', border: 'none', padding: '1rem' }}
+                          >
+                             <Trash2 size={18} />
+                          </button>
+                        </>
                      )}
+
                   </div>
             </div>
          </div>
@@ -435,6 +480,13 @@ export default function ProjectPage() {
                       rank={entry.isPinned ? -1 : idx} 
                       onVote={() => fetchEntries()} 
                       isAdmin={isAdmin}
+                      currentUserId={currentUserId}
+                      onEdit={(p) => {
+                        // This technically edits an entry, but for now let's just use it
+                        // We might need another modal for entries if they are different
+                        // But for now it works as they are just Projects
+                        router.push(`/projects/${p.id}`);
+                      }}
                       onRefresh={() => fetchEntries()}
                       onViewFeedback={() => router.push(`/projects/${entry.id}`)}
                       activeTab="sharktank"
@@ -589,6 +641,16 @@ export default function ProjectPage() {
           onCancel={() => setShowAuthModal(false)}
         />
       )}
+      {showEditModal && project && (
+        <SubmitProjectForm 
+          user={userProfile || session?.user}
+          onCancel={() => setShowEditModal(false)}
+          onSubmit={handleEditSubmit}
+          initialData={project}
+          title={`Edit: ${project.name}`}
+        />
+      )}
     </main>
+
   );
 }
