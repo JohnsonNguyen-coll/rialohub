@@ -294,6 +294,8 @@ function HomeContent() {
                 onVote={() => handleVote(project.id)}
                 rank={index}
                 isAdmin={isAdmin}
+                currentUserId={currentUserId}
+                onEdit={(p) => { setEditingProject(p); setAuthMode('submit'); setShowSubmitModal(true); }}
                 onRefresh={fetchProjects}
                 onViewFeedback={() => {}}
                 activeTab={activeTab}

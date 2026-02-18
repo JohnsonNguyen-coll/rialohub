@@ -87,8 +87,8 @@ export async function PUT(
                         description,
                         link: link || '#',
                         category,
-                        isPinned: isPinned || false,
-                        isEvent: isEvent || false,
+                        isPinned: isPinned ?? undefined,
+                        isEvent: isEvent ?? undefined,
                   }
             });
 

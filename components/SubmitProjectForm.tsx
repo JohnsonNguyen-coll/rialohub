@@ -87,8 +87,8 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
         link: initialIsEvent ? (link || '#') : link,
         category,
         description: content,
-        isPinned: isAdmin ? isPinned : false,
-        isEvent: isAdmin ? isEvent : (initialIsEvent || false),
+        isPinned: isAdmin ? isPinned : (initialData?.isPinned ?? false),
+        isEvent: isAdmin ? isEvent : (initialData?.isEvent ?? initialIsEvent ?? false),
       });
     } catch (err) {
       console.error(err);
