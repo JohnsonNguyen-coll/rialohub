@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { Suspense } from 'react';
+import { toast } from 'sonner';
 
 function HomeContent() {
   const { data: session }: any = useSession();
@@ -121,15 +122,25 @@ function HomeContent() {
     const url = isEditing ? `/api/projects/${editingProject.id}` : '/api/projects';
     const method = isEditing ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (res.ok) {
-      setShowSubmitModal(false);
-      setEditingProject(null);
-      fetchProjects();
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        toast.success(isEditing ? 'Project updated successfully' : 'Project published successfully');
+        setShowSubmitModal(false);
+        setEditingProject(null);
+        fetchProjects();
+      } else {
+        const result = await res.json();
+        toast.error(result.error || 'Failed to submit project');
+      }
+    } catch (error) {
+      console.error('Error submitting project:', error);
+      toast.error('An unexpected error occurred');
     }
   };
 
