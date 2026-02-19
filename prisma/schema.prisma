@@ -78,6 +78,8 @@ model Project {
   feedback    Feedback[]
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   votes       Vote[]
+  deadline    DateTime?
+  recap       String?
   event       Project?   @relation("EventEntries", fields: [eventId], references: [id])
   entries     Project[]  @relation("EventEntries")
   notifications Notification[]

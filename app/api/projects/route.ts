@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
       const eventId = searchParams.get('eventId');
       const isTop = searchParams.get('isTop');
 
-      const projects = await (prisma.project as any).findMany({
+      const projects = await prisma.project.findMany({
             where: {
                   ...(category ? { category } : {}),
                   ...(userId ? { userId } : {}),
@@ -60,11 +60,11 @@ export async function POST(req: NextRequest) {
       const isAdmin = (user as any).role === 'admin';
 
       const body = await req.json();
-      const { name, description, link, category, isPinned, isEvent, eventId } = body;
+      const { name, description, link, category, isPinned, isEvent, eventId, deadline } = body;
 
       // Check if user already has a project in this category
       if (!isAdmin && !isEvent && !eventId) {
-            const existingProject = await (prisma.project as any).findFirst({
+            const existingProject = await prisma.project.findFirst({
                   where: {
                         userId: user.id,
                         category: category,
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             }
       }
 
-      const project = await (prisma.project as any).create({
+      const project = await prisma.project.create({
             data: {
                   name,
                   description,
@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
                   isPinned: isAdmin ? (isPinned || false) : false,
                   isEvent: isAdmin ? (isEvent || false) : false,
                   eventId: eventId || null,
+                  deadline: deadline ? new Date(deadline) : null,
             }
       });
 

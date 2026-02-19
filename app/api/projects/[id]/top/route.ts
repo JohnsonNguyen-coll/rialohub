@@ -33,7 +33,7 @@ export async function POST(
                   isTop = !current?.isTop;
             }
 
-            const project = await (prisma.project as any).update({
+            const project = await prisma.project.update({
                   where: { id },
                   data: { isTop }
             });

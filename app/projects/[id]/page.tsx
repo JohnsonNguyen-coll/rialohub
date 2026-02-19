@@ -131,6 +131,8 @@ export default function ProjectPage() {
   const [authMode, setAuthMode] = useState<'signin' | 'submit'>('signin');
   const [userProfile, setUserProfile] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<any>(null);
+  const [uploadingRecap, setUploadingRecap] = useState(false);
 
 
   useEffect(() => {
@@ -143,6 +145,65 @@ export default function ProjectPage() {
       fetchProfile();
     }
   }, [id, session]);
+
+  useEffect(() => {
+    if (!project?.deadline) return;
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const end = new Date(project.deadline).getTime();
+      const distance = end - now;
+
+      if (distance < 0) {
+        clearInterval(timer);
+        setTimeLeft(null);
+      } else {
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        setTimeLeft({ days, hours, minutes, seconds });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [project?.deadline]);
+
+  const handleRecapUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (!file) return;
+
+     setUploadingRecap(true);
+     const formData = new FormData();
+     formData.append('file', file);
+
+     try {
+       const res = await fetch('/api/upload', {
+         method: 'POST',
+         body: formData,
+       });
+
+       if (res.ok) {
+         const { url } = await res.json();
+         // Update project with recap URL
+         const updateRes = await fetch(`/api/projects/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recap: url })
+         });
+         
+         if (updateRes.ok) {
+            toast.success('Recap video uploaded!');
+            fetchProject();
+         }
+       }
+     } catch (err) {
+       console.error('Recap upload error:', err);
+       toast.error('Failed to upload recap');
+     } finally {
+       setUploadingRecap(false);
+     }
+  };
 
   const fetchProfile = async () => {
     const res = await fetch('/api/profile');
@@ -384,6 +445,30 @@ export default function ProjectPage() {
                       <Calendar size={16} /> Created on {new Date(project.createdAt).toLocaleDateString()}
                     </div>
                   </div>
+
+                  {project.isEvent && project.deadline && (
+                    <div style={{ marginTop: '2rem', display: 'flex', gap: '1.5rem' }}>
+                       {timeLeft ? (
+                          <>
+                             {[
+                                { label: 'Days', value: timeLeft.days },
+                                { label: 'Hours', value: timeLeft.hours },
+                                { label: 'Mins', value: timeLeft.minutes },
+                                { label: 'Secs', value: timeLeft.seconds },
+                             ].map((unit, i) => (
+                                <div key={i} style={{ textAlign: 'center' }}>
+                                   <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>{unit.value.toString().padStart(2, '0')}</div>
+                                   <div style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.6, textTransform: 'uppercase', marginTop: '0.25rem' }}>{unit.label}</div>
+                                </div>
+                             ))}
+                          </>
+                       ) : (
+                          <div style={{ padding: '0.5rem 1rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', fontWeight: 800, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                             <Clock size={16} /> EVENT CONCLUDED
+                          </div>
+                       )}
+                    </div>
+                  )}
                </div>
 
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -452,6 +537,35 @@ export default function ProjectPage() {
                 }
               `}</style>
             </div>
+
+            {/* Recap Section */}
+            {(project.recap || (!timeLeft && project.isEvent && (isAdmin || isOwner))) && (
+              <div className="premium-card" style={{ padding: '3rem', backgroundColor: 'white', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                   <div style={{ padding: '0.6rem', borderRadius: '12px', background: 'var(--surface)', color: 'var(--primary)' }}>
+                      <Zap size={24} />
+                   </div>
+                   <h3 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Event Recap</h3>
+                </div>
+                
+                {project.recap ? (
+                  <div style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+                    <video controls style={{ width: '100%', display: 'block' }}>
+                      <source src={project.recap} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem', border: '2px dashed var(--border)', borderRadius: 'var(--radius-lg)' }}>
+                    <p style={{ color: 'var(--secondary)', marginBottom: '1.5rem', fontWeight: 600 }}>The event has ended. Share the highlights with the community!</p>
+                    <label className="btn-primary" style={{ cursor: 'pointer', display: 'inline-flex' }}>
+                       {uploadingRecap ? 'Uploading...' : 'Upload Recap Video'}
+                       <input type="file" accept="video/*" onChange={handleRecapUpload} style={{ display: 'none' }} disabled={uploadingRecap} />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Event Specifics Section */}
             {project.isEvent && (

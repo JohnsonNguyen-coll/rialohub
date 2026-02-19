@@ -21,7 +21,8 @@ import {
   Compass,
   Link as LinkIcon,
   Flame,
-  Award
+  Award,
+  ArrowLeft
 } from 'lucide-react';
 
 import { Suspense } from 'react';
@@ -32,6 +33,8 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('builder');
   const [viewMode, setViewMode] = useState<'all' | 'mine'>('all');
+  const [selectedBuilder, setSelectedBuilder] = useState<any>(null);
+  const [builders, setBuilders] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -43,18 +46,29 @@ function HomeContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && (tab === 'builder' || tab === 'sharktank' || tab === 'top')) {
+    if (tab && (tab === 'builder' || tab === 'sharktank' || tab === 'top' || tab === 'builders')) {
       setActiveTab(tab);
     }
   }, [searchParams]);
 
   useEffect(() => {
+    if (activeTab === 'builders' && !selectedBuilder) {
+       fetchBuilders();
+    }
     fetchProjects();
     if (session?.user) {
       fetchProfile();
     }
     setIsLoaded(true);
-  }, [session, activeTab, viewMode]);
+  }, [session, activeTab, viewMode, selectedBuilder]);
+
+  const fetchBuilders = async () => {
+     const res = await fetch('/api/builders');
+     if (res.ok) {
+        const data = await res.json();
+        setBuilders(data);
+     }
+  };
 
   const fetchProfile = async () => {
     const res = await fetch('/api/profile');
@@ -69,7 +83,9 @@ function HomeContent() {
     let url = '/api/projects';
     const params = new URLSearchParams();
     
-    if (viewMode === 'mine') {
+    if (selectedBuilder) {
+       params.append('userId', selectedBuilder.id);
+    } else if (viewMode === 'mine') {
        if (userProfile?.id) {
           params.append('userId', userProfile.id);
        } else if (session?.user?.id) {
@@ -179,7 +195,10 @@ function HomeContent() {
               <button className={`sidebar-nav-item ${activeTab === 'sharktank' ? 'active' : ''}`} onClick={() => { setActiveTab('sharktank'); setViewMode('all'); }}>
                 <Zap size={18} /> Shark Tank
               </button>
-              <button className={`sidebar-nav-item ${activeTab === 'top' ? 'active' : ''}`} onClick={() => { setActiveTab('top'); setViewMode('all'); }}>
+              <button className={`sidebar-nav-item ${activeTab === 'builders' ? 'active' : ''}`} onClick={() => { setActiveTab('builders'); setViewMode('all'); setSelectedBuilder(null); }}>
+                <UserIcon size={18} /> Top Builders
+              </button>
+              <button className={`sidebar-nav-item ${activeTab === 'top' ? 'active' : ''}`} onClick={() => { setActiveTab('top'); setViewMode('all'); setSelectedBuilder(null); }}>
                 <Award size={18} /> Top Projects
               </button>
             </div>
@@ -228,7 +247,7 @@ function HomeContent() {
                   marginBottom: '1rem',
                   textShadow: '0 2px 15px rgba(0,0,0,0.4)'
                 }}>
-                  {activeTab === 'builder' ? 'The Hub of Innovation.' : activeTab === 'sharktank' ? 'Shark Tank Arena.' : 'Elite Handpicked Gallery.'}
+                  {selectedBuilder ? `Projects by @${selectedBuilder.username}` : (activeTab === 'builder' ? 'The Hub of Innovation.' : activeTab === 'sharktank' ? 'Shark Tank Arena.' : activeTab === 'builders' ? 'Elite Weekly Builders.' : 'Elite Handpicked Gallery.')}
                 </h1>
                 <p style={{ 
                   fontSize: '1rem', 
@@ -236,10 +255,11 @@ function HomeContent() {
                   fontWeight: 500,
                   textShadow: '0 1px 8px rgba(0,0,0,0.4)'
                 }}>
-                  {activeTab === 'builder' 
+                  {selectedBuilder ? `Explore all submissions from this talented innovator.` : (activeTab === 'builder' 
                     ? 'Discover the most ambitious projects from the global builder community.' 
                     : activeTab === 'sharktank' ? 'Watch or join the most high-stakes pitches in the ecosystem.'
-                    : 'A collection of the most exceptional projects vetted by the RialoHub team.'}
+                    : activeTab === 'builders' ? 'Ranking the most active and successful builders in the RialoHub ecosystem this week.'
+                    : 'A collection of the most exceptional projects vetted by the RialoHub team.')}
                 </p>
              </div>
              <div style={{ 
@@ -278,49 +298,103 @@ function HomeContent() {
              )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {pinnedProjects.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-                 {pinnedProjects.map((project, index) => (
-                    <ProjectCard 
-                      key={project.id} 
-                      project={project} 
-                      onVote={() => handleVote(project.id)}
-                      rank={index}
-                      isAdmin={isAdmin}
-                      currentUserId={currentUserId}
-                      onEdit={(p) => { setEditingProject(p); setAuthMode('submit'); setShowSubmitModal(true); }}
-                      onRefresh={fetchProjects}
-                      onViewFeedback={() => {}}
-                      activeTab={activeTab}
-                    />
-                 ))}
-              </div>
-            )}
+          {activeTab === 'builders' && !selectedBuilder ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+               {builders.map((builder, idx) => (
+                  <div key={builder.id} className="premium-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '1.25rem', backgroundColor: 'white' }}>
+                     <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'var(--foreground)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800 }}>
+                        {(builder.username || 'U').substring(0, 1).toUpperCase()}
+                     </div>
+                     <div>
+                        <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>@{builder.username}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600, marginTop: '0.25rem' }}>Rank #{idx + 1} this week</div>
+                     </div>
+                     
+                     <div style={{ display: 'flex', gap: '1.5rem', width: '100%', padding: '1rem', backgroundColor: 'var(--surface)', borderRadius: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                           <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{builder.totalVotes}</div>
+                           <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Votes</div>
+                        </div>
+                        <div style={{ width: '1px', backgroundColor: 'var(--border)' }} />
+                        <div style={{ flex: 1 }}>
+                           <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{builder.totalProjects}</div>
+                           <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Posts</div>
+                        </div>
+                     </div>
 
-            {normalProjects.map((project, index) => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                onVote={() => handleVote(project.id)}
-                rank={index}
-                isAdmin={isAdmin}
-                currentUserId={currentUserId}
-                onEdit={(p) => { setEditingProject(p); setAuthMode('submit'); setShowSubmitModal(true); }}
-                onRefresh={fetchProjects}
-                onViewFeedback={() => {}}
-                activeTab={activeTab}
-              />
-            ))}
-            
-            {filteredProjects.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '8rem 2rem', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--surface)' }}>
-                <Compass size={48} style={{ margin: '0 auto 1.5rem', opacity: 0.3 }} />
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>No projects found</h3>
-                <p style={{ color: 'var(--secondary)', fontSize: '0.9rem' }}>Be the pioneer in this category and share your work today!</p>
-              </div>
-            )}
-          </div>
+                     <button 
+                        onClick={() => setSelectedBuilder(builder)}
+                        className="btn-primary" 
+                        style={{ width: '100%', padding: '0.85rem' }}
+                     >
+                        View Projects
+                     </button>
+                  </div>
+               ))}
+               {builders.length === 0 && (
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '5rem', border: '1px dashed var(--border)', borderRadius: '12px' }}>
+                     <p style={{ color: 'var(--muted)' }}>No builders found yet.</p>
+                  </div>
+               )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {selectedBuilder && (
+                 <button 
+                   onClick={() => setSelectedBuilder(null)}
+                   style={{ 
+                     alignSelf: 'flex-start', border: 'none', background: 'var(--surface)', 
+                     padding: '0.6rem 1rem', borderRadius: '8px', fontWeight: 700, 
+                     color: 'var(--primary)', cursor: 'pointer', marginBottom: '1rem',
+                     display: 'flex', alignItems: 'center', gap: '0.5rem'
+                   }}
+                 >
+                   <ArrowLeft size={16} /> Back to Builders
+                 </button>
+              )}
+              {pinnedProjects.length > 0 && !selectedBuilder && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+                   {pinnedProjects.map((project, index) => (
+                      <ProjectCard 
+                        key={project.id} 
+                        project={project} 
+                        onVote={() => handleVote(project.id)}
+                        rank={index}
+                        isAdmin={isAdmin}
+                        currentUserId={currentUserId}
+                        onEdit={(p) => { setEditingProject(p); setAuthMode('submit'); setShowSubmitModal(true); }}
+                        onRefresh={fetchProjects}
+                        onViewFeedback={() => {}}
+                        activeTab={activeTab}
+                      />
+                   ))}
+                </div>
+              )}
+
+              {normalProjects.map((project, index) => (
+                <ProjectCard 
+                  key={project.id} 
+                  project={project} 
+                  onVote={() => handleVote(project.id)}
+                  rank={index}
+                  isAdmin={isAdmin}
+                  currentUserId={currentUserId}
+                  onEdit={(p) => { setEditingProject(p); setAuthMode('submit'); setShowSubmitModal(true); }}
+                  onRefresh={fetchProjects}
+                  onViewFeedback={() => {}}
+                  activeTab={activeTab}
+                />
+              ))}
+              
+              {filteredProjects.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '8rem 2rem', border: '1px dashed var(--border)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--surface)' }}>
+                  <Compass size={48} style={{ margin: '0 auto 1.5rem', opacity: 0.3 }} />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>No projects found</h3>
+                  <p style={{ color: 'var(--secondary)', fontSize: '0.9rem' }}>Be the pioneer in this category and share your work today!</p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Right Sidebar */}

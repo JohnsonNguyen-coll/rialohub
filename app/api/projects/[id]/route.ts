@@ -69,7 +69,7 @@ export async function PUT(
 
       try {
             const body = await req.json();
-            const { name, description, link, category, isPinned, isEvent } = body;
+            const { name, description, link, category, isPinned, isEvent, deadline, recap } = body;
 
             // In a real app, check session to verify ownership
             /*
@@ -89,6 +89,8 @@ export async function PUT(
                         category,
                         isPinned: isPinned ?? undefined,
                         isEvent: isEvent ?? undefined,
+                        deadline: deadline ? new Date(deadline) : undefined,
+                        recap: recap ?? undefined,
                   }
             });
 

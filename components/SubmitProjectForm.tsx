@@ -17,6 +17,7 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
   const [category, setCategory] = useState<'builder' | 'sharktank'>(initialData?.category || initialCategory || 'builder');
   const [isPinned, setIsPinned] = useState(initialData?.isPinned || false);
   const [isEvent, setIsEvent] = useState(initialData?.isEvent || initialIsEvent || false);
+  const [deadline, setDeadline] = useState(initialData?.deadline ? new Date(initialData.deadline).toISOString().slice(0, 16) : '');
   const isAdmin = user?.role === 'admin' || (user as any)?.role === 'admin';
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,7 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
         description: content,
         isPinned: isAdmin ? isPinned : (initialData?.isPinned ?? false),
         isEvent: isAdmin ? isEvent : (initialData?.isEvent ?? initialIsEvent ?? false),
+        deadline: deadline || null,
       });
     } catch (err) {
       console.error(err);
@@ -170,6 +172,22 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 placeholder="https://..."
+                style={{
+                  width: '100%', padding: '1rem',
+                  borderRadius: '8px', border: '1px solid var(--border)',
+                  outline: 'none', fontSize: '1rem'
+                }}
+              />
+            </div>
+          )}
+
+          {isEvent && (
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--secondary)' }}>Event Deadline</label>
+              <input 
+                type="datetime-local" 
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
                 style={{
                   width: '100%', padding: '1rem',
                   borderRadius: '8px', border: '1px solid var(--border)',
