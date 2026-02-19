@@ -249,7 +249,7 @@ export default function ProjectPage() {
       setShowAuthModal(true);
       return false;
     }
-    if (!user.twitterId || !user.discordId) {
+    if (!user.username || !user.twitterId || !user.discordId) {
       setAuthMode('signin');
       setShowAuthModal(true);
       return false;
@@ -734,7 +734,7 @@ export default function ProjectPage() {
         </div>
       </div>
 
-      {(showEntryModal && (userProfile || session?.user) && (userProfile?.twitterId || session?.user?.twitterId) && (userProfile?.discordId || session?.user?.discordId)) ? (
+      {(showEntryModal && (userProfile || session?.user) && (userProfile?.username || session?.user?.username) && (userProfile?.twitterId || session?.user?.twitterId) && (userProfile?.discordId || session?.user?.discordId)) ? (
         <SubmitProjectForm 
           user={userProfile || session?.user}
           title={`Arena Entry: ${project?.name}`}

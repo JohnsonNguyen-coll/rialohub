@@ -120,7 +120,7 @@ function HomeContent() {
       return;
     }
     const user = userProfile || session?.user;
-    if (!user?.twitterId || !user?.discordId) {
+    if (!user.username || !user.twitterId || !user.discordId) {
        setAuthMode('signin');
        setShowSubmitModal(true);
        return;
@@ -448,6 +448,7 @@ function HomeContent() {
       {showSubmitModal && (
         ((session?.user || userProfile) && 
          authMode === 'submit' && 
+         (userProfile?.username || session?.user?.username) && 
          (userProfile?.twitterId || session?.user?.twitterId) && 
          (userProfile?.discordId || session?.user?.discordId)) ? (
           <SubmitProjectForm 
