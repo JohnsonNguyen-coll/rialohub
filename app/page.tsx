@@ -42,6 +42,7 @@ function HomeContent() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingProject, setEditingProject] = useState<any>(null);
+  const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month' | 'all'>('week');
 
 
   useEffect(() => {
@@ -60,10 +61,10 @@ function HomeContent() {
       fetchProfile();
     }
     setIsLoaded(true);
-  }, [session, activeTab, viewMode, selectedBuilder]);
+  }, [session, activeTab, viewMode, selectedBuilder, timeRange]);
 
   const fetchBuilders = async () => {
-     const res = await fetch('/api/builders');
+     const res = await fetch(`/api/builders?timeRange=${timeRange}`);
      if (res.ok) {
         const data = await res.json();
         setBuilders(data);
@@ -300,43 +301,129 @@ function HomeContent() {
           </div>
 
           {activeTab === 'builders' && !selectedBuilder ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-               {builders.map((builder, idx) => (
-                  <div key={builder.id} className="premium-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '1.25rem', backgroundColor: 'white' }}>
-                     <div style={{ width: '80px', height: '80px', borderRadius: '24px', background: 'var(--foreground)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 800 }}>
-                        {(builder.username || 'U').substring(0, 1).toUpperCase()}
-                     </div>
-                     <div>
-                        <div style={{ fontWeight: 800, fontSize: '1.25rem' }}>@{builder.username}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600, marginTop: '0.25rem' }}>Rank #{idx + 1} this week</div>
-                     </div>
-                     
-                     <div style={{ display: 'flex', gap: '1.5rem', width: '100%', padding: '1rem', backgroundColor: 'var(--surface)', borderRadius: '12px' }}>
-                        <div style={{ flex: 1 }}>
-                           <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{builder.totalVotes}</div>
-                           <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Votes</div>
-                        </div>
-                        <div style={{ width: '1px', backgroundColor: 'var(--border)' }} />
-                        <div style={{ flex: 1 }}>
-                           <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>{builder.totalProjects}</div>
-                           <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase' }}>Posts</div>
-                        </div>
-                     </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+               <div style={{ 
+                 display: 'flex', 
+                 gap: '0.5rem', 
+                 backgroundColor: 'var(--surface)', 
+                 padding: '0.4rem', 
+                 borderRadius: '12px',
+                 alignSelf: 'center',
+                 boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                 border: '1px solid var(--border)'
+               }}>
+                  {[
+                    { label: '24h', value: 'day' },
+                    { label: 'Weekly', value: 'week' },
+                    { label: 'Monthly', value: 'month' },
+                    { label: 'All Time', value: 'all' },
+                  ].map((range) => (
+                    <button
+                      key={range.value}
+                      onClick={() => setTimeRange(range.value as any)}
+                      style={{
+                        padding: '0.6rem 1.25rem',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        backgroundColor: timeRange === range.value ? 'white' : 'transparent',
+                        color: timeRange === range.value ? 'var(--primary)' : 'var(--muted)',
+                        boxShadow: timeRange === range.value ? '0 4px 12px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+               </div>
 
-                     <button 
-                        onClick={() => setSelectedBuilder(builder)}
-                        className="btn-primary" 
-                        style={{ width: '100%', padding: '0.85rem' }}
+               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                  {builders.map((builder, idx) => (
+                     <div 
+                       key={builder.id} 
+                       className="premium-card" 
+                       onClick={() => setSelectedBuilder(builder)}
+                       style={{ 
+                         padding: '2.5rem 2rem', 
+                         display: 'flex', 
+                         flexDirection: 'column', 
+                         alignItems: 'center', 
+                         textAlign: 'center', 
+                         gap: '1.5rem', 
+                         backgroundColor: 'white',
+                         cursor: 'pointer',
+                         transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                       }}
+                       onMouseOver={(e) => {
+                         e.currentTarget.style.transform = 'translateY(-8px)';
+                         e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.08)';
+                       }}
+                       onMouseOut={(e) => {
+                         e.currentTarget.style.transform = 'translateY(0)';
+                         e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                       }}
                      >
-                        View Projects
-                     </button>
-                  </div>
-               ))}
-               {builders.length === 0 && (
-                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '5rem', border: '1px dashed var(--border)', borderRadius: '12px' }}>
-                     <p style={{ color: 'var(--muted)' }}>No builders found yet.</p>
-                  </div>
-               )}
+                        <div style={{ position: 'relative' }}>
+                           <div style={{ width: '90px', height: '90px', borderRadius: '30px', background: 'var(--foreground)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 800, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+                              {(builder.username || 'U').substring(0, 1).toUpperCase()}
+                           </div>
+                           <div style={{ 
+                             position: 'absolute', 
+                             bottom: '-5px', 
+                             right: '-5px', 
+                             width: '32px', 
+                             height: '32px', 
+                             borderRadius: '50%', 
+                             backgroundColor: 'var(--primary)', 
+                             color: 'white', 
+                             display: 'flex', 
+                             alignItems: 'center', 
+                             justifyContent: 'center',
+                             fontSize: '0.9rem',
+                             fontWeight: 800,
+                             border: '3px solid white'
+                           }}>
+                              {idx + 1}
+                           </div>
+                        </div>
+                        
+                        <div>
+                           <div style={{ fontWeight: 800, fontSize: '1.35rem', letterSpacing: '-0.5px' }}>@{builder.username}</div>
+                           <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 800, marginTop: '0.25rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                             {timeRange === 'day' ? 'Trending Today' : timeRange === 'week' ? 'Weekly Elite' : timeRange === 'month' ? 'Monthly Star' : 'Hall of Fame'}
+                           </div>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '1.5rem', width: '100%', padding: '1.25rem', backgroundColor: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                           <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)' }}>{builder.rangeVotes}</div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>{timeRange === 'all' ? 'Total Votes' : 'Period Votes'}</div>
+                           </div>
+                           <div style={{ width: '1px', backgroundColor: 'var(--border)' }} />
+                           <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)' }}>{builder.recentProjects}</div>
+                              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>{timeRange === 'all' ? 'Total Posts' : 'Period Posts'}</div>
+                           </div>
+                        </div>
+
+                        <button 
+                           className="btn-primary" 
+                           style={{ width: '100%', padding: '1rem', borderRadius: '12px' }}
+                        >
+                           Explore Creations
+                        </button>
+                     </div>
+                  ))}
+                  {builders.length === 0 && (
+                     <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '8rem', border: '2px dashed var(--border)', borderRadius: '24px', backgroundColor: 'var(--surface)' }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '1.5rem', opacity: 0.2 }}>🏆</div>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--secondary)' }}>No builders yet for this period.</h3>
+                        <p style={{ color: 'var(--muted)', marginTop: '0.5rem' }}>Be the first one to climb the leaderboard!</p>
+                     </div>
+                  )}
+               </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
