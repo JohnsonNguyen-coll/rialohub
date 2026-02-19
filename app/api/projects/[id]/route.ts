@@ -71,6 +71,10 @@ export async function PUT(
             const body = await req.json();
             const { name, description, link, category, isPinned, isEvent, deadline, recap } = body;
 
+            if (deadline && new Date(deadline) < new Date()) {
+                  return NextResponse.json({ error: 'Deadline must be in the future' }, { status: 400 });
+            }
+
             // In a real app, check session to verify ownership
             /*
             const session = await getServerSession(authOptions);

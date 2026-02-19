@@ -153,6 +153,7 @@ function HomeContent() {
       } else {
         const result = await res.json();
         toast.error(result.error || 'Failed to submit project');
+        throw new Error(result.error || 'Failed to submit project');
       }
     } catch (error) {
       console.error('Error submitting project:', error);

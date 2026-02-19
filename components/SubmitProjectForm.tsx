@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Bold, Italic, Link as LinkIcon, Image as ImageIcon, Send, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function SubmitProjectForm({ onSubmit, onCancel, user, title, initialCategory, initialIsEvent, initialData }: { 
   onSubmit: (data: any) => void, 
@@ -79,6 +80,16 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
     if (!name || isSubmitting) return;
     if (!initialIsEvent && !link) return;
 
+    // Date validation
+    if (isEvent && deadline) {
+      const selectedDate = new Date(deadline);
+      const now = new Date();
+      if (selectedDate <= now) {
+        toast.error('Deadline must be in the future.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     const content = editorRef.current?.innerHTML || '';
     
@@ -92,7 +103,7 @@ export default function SubmitProjectForm({ onSubmit, onCancel, user, title, ini
         isEvent: isAdmin ? isEvent : (initialData?.isEvent ?? initialIsEvent ?? false),
         deadline: deadline || null,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setIsSubmitting(false);
     }

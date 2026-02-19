@@ -285,6 +285,7 @@ export default function ProjectPage() {
     } else {
       const err = await res.json();
       toast.error(err.error || 'Failed to submit project');
+      throw new Error(err.error || 'Failed to submit project');
     }
   };
 
@@ -363,6 +364,7 @@ export default function ProjectPage() {
     } else {
       const err = await res.json();
       toast.error(err.error || 'Failed to update project');
+      throw new Error(err.error || 'Failed to update project');
     }
   };
 

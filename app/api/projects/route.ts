@@ -60,7 +60,11 @@ export async function POST(req: NextRequest) {
       const isAdmin = (user as any).role === 'admin';
 
       const body = await req.json();
-      const { name, description, link, category, isPinned, isEvent, eventId, deadline } = body;
+      const { name, description, link, category, isPinned, isEvent, eventId, deadline, recap } = body;
+
+      if (deadline && new Date(deadline) < new Date()) {
+            return NextResponse.json({ error: 'Deadline must be in the future' }, { status: 400 });
+      }
 
       // Check if user already has a project in this category
       if (!isAdmin && !isEvent && !eventId) {
